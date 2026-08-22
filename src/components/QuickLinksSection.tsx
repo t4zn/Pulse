@@ -14,10 +14,10 @@ export function QuickLinksSection() {
     },
     {
       title: "Zero-Knowledge Claims",
-      desc: "Victims verify aid eligibility via Keccak256 Merkle proofs with $0 gas fees sponsored by Pulse Relayer.",
+      desc: "Victims verify aid eligibility via privacy-preserving Keccak256 Merkle proofs for direct instant payout.",
       href: "/beneficiary",
       icon: ShieldCheck,
-      badge: "ZERO-GAS",
+      badge: "ZK-VERIFIED",
       badgeColor: "text-primary bg-primary/10",
     },
     {

@@ -45,7 +45,7 @@ export function Navbar() {
 
   const navLinks = [
     { name: "Home", href: "/", icon: Home },
-    { name: "Crisis", href: "/crisis/turkey-earthquake-2026", icon: Flame },
+    { name: "Crisis", href: "/crisis", icon: Flame },
     { name: "Claims", href: "/beneficiary", icon: ShieldCheck },
     { name: "Audit", href: "/audit", icon: Search },
     { name: "Oracle", href: "/oracle", icon: Cpu },

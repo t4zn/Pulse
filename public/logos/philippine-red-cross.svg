@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200">
+  <!-- Outer Blue Ring -->
+  <circle cx="100" cy="100" r="96" fill="#0038A8" stroke="#FCD116" stroke-width="4"/>
+  <!-- Gold Ring Border -->
+  <circle cx="100" cy="100" r="82" fill="#FFFFFF" stroke="#FCD116" stroke-width="3"/>
+  
+  <!-- 8-Ray Philippine Sun in soft gold background -->
+  <g fill="#FCD116" opacity="0.4">
+    <polygon points="100,28 104,44 96,44"/>
+    <polygon points="100,172 104,156 96,156"/>
+    <polygon points="28,100 44,104 44,96"/>
+    <polygon points="172,100 156,104 156,96"/>
+    <polygon points="49,49 63,57 57,63"/>
+    <polygon points="151,151 137,143 143,137"/>
+    <polygon points="151,49 143,63 137,57"/>
+    <polygon points="49,151 57,137 63,143"/>
+  </g>
+  
+  <!-- Central Official Red Cross -->
+  <rect x="85" y="45" width="30" height="110" rx="3" fill="#CE1126"/>
+  <rect x="45" y="85" width="110" height="30" rx="3" fill="#CE1126"/>
+  
+  <!-- Philippine Stars -->
+  <g fill="#FCD116">
+    <polygon points="100,6 102,12 108,12 103,16 105,22 100,18 95,22 97,16 92,12 98,12" transform="scale(0.8) translate(25, -2)"/>
+    <polygon points="100,6 102,12 108,12 103,16 105,22 100,18 95,22 97,16 92,12 98,12" transform="rotate(120 100 100) scale(0.8) translate(25, -2)"/>
+    <polygon points="100,6 102,12 108,12 103,16 105,22 100,18 95,22 97,16 92,12 98,12" transform="rotate(240 100 100) scale(0.8) translate(25, -2)"/>
+  </g>
+</svg>

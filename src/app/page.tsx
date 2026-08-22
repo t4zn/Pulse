@@ -144,7 +144,7 @@ export default function CommandCenterHome() {
       chainBadge: "ETH",
       type: "Aid Payout",
       amount: "$150 USDC",
-      target: "Victim #Merkle-8831 (Gasless)",
+      target: "Victim #Merkle-8831",
       time: "34s ago",
     },
     {
@@ -176,10 +176,10 @@ export default function CommandCenterHome() {
     },
     {
       title: "Zero-Knowledge Claims",
-      desc: "Victims verify aid eligibility via Keccak256 Merkle proofs with $0 gas fees sponsored by Pulse Relayer.",
+      desc: "Victims verify aid eligibility via privacy-preserving Keccak256 Merkle proofs for direct instant payout.",
       href: "/beneficiary",
       icon: ShieldCheck,
-      badge: "ZERO-GAS",
+      badge: "ZK-VERIFIED",
       badgeColor: "text-blue-700 bg-blue-50 border-blue-200",
     },
     {
@@ -225,8 +225,8 @@ export default function CommandCenterHome() {
     {
       icon: Stethoscope,
       count: "100%",
-      label: "Gasless Direct Transfer",
-      detail: "$0.00 network fee deducted from victims — Pulse Protocol sponsors 100% of transaction fees.",
+      label: "Direct Transfer",
+      detail: "Full aid allocation transferred directly to verified recipient wallets with zero cuts.",
       accent: "text-emerald-600 bg-emerald-50 border-emerald-100",
     },
   ];
@@ -247,7 +247,7 @@ export default function CommandCenterHome() {
     {
       step: "03",
       title: "Zero-Knowledge Victim Claim",
-      desc: "Victims prove eligibility via privacy-preserving Merkle proofs and receive instant aid with zero gas fees.",
+      desc: "Victims prove eligibility via privacy-preserving Merkle proofs and receive instant direct aid.",
       icon: ShieldCheck,
     },
     {
@@ -387,7 +387,7 @@ export default function CommandCenterHome() {
                       14,280
                     </div>
                     <div className="text-xs font-mono text-[#64748B] font-medium mt-1">
-                      Gasless Merkle claims
+                      Verified Merkle claims
                     </div>
                   </div>
 

@@ -301,8 +301,8 @@ export function SwapModal({ isOpen, onClose }: { isOpen: boolean; onClose: () =>
                 <span className="text-ink font-semibold">1 {fromToken.symbol} ≈ {(fromToken.rateToUSD / toToken.rateToUSD).toFixed(2)} {toToken.symbol}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-muted">Bridge Protocol Fee:</span>
-                <span className="text-semantic-up font-semibold">$0.00 (Pulse Sponsored)</span>
+                <span className="text-muted">Protocol Fee:</span>
+                <span className="text-semantic-up font-semibold">0.00%</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-muted">Settlement Speed:</span>

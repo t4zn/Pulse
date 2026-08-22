@@ -7,7 +7,7 @@ import { WalletProvider } from "@/context/WalletContext";
 export const metadata: Metadata = {
   title: "PULSE — Cross-Chain Emergency Aid & Verifiable Aid Protocol",
   description: "Cross-chain disaster relief protocol with Google Gemini 2.5 Flash severity triggers, zero-knowledge victim verification, and 100% visual public audit trails.",
-  keywords: ["blockchain charity", "cross-chain emergency vault", "Gemini 2.5 Flash", "Merkle tree privacy", "EIP-712 gasless claim"],
+  keywords: ["blockchain charity", "cross-chain emergency vault", "Gemini 2.5 Flash", "Merkle tree privacy", "EIP-712 claim verification"],
 };
 
 export default function RootLayout({
