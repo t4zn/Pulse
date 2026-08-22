@@ -17,6 +17,29 @@ import {
 import { getExplorerAddressUrl } from "@/lib/contracts";
 import { useWallet } from "@/context/WalletContext";
 
+// Branded Blockchain Network SVG Icons
+function EthereumIcon({ className = "w-4 h-4" }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 256 417" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M127.961 0L125.166 9.5V285.168L127.961 287.958L255.923 212.32L127.961 0Z" fill="#627EEA" />
+      <path d="M127.962 0L0 212.32L127.962 287.958V157.34V0Z" fill="#627EEA" fillOpacity="0.8" />
+      <path d="M127.961 312.187L126.386 314.106V413.447L127.961 416.892L256 236.585L127.961 312.187Z" fill="#627EEA" />
+      <path d="M127.962 416.892V312.187L0 236.585L127.962 416.892Z" fill="#627EEA" fillOpacity="0.8" />
+      <path d="M127.961 287.958L255.923 212.32L127.961 157.339V287.958Z" fill="#627EEA" fillOpacity="0.6" />
+      <path d="M0 212.32L127.962 287.958V157.339L0 212.32Z" fill="#627EEA" fillOpacity="0.4" />
+    </svg>
+  );
+}
+
+function PolygonIcon({ className = "w-4 h-4" }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 38 33" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M29 10.2L19.5 4.7L10 10.2V21.2L19.5 26.7L29 21.2V10.2Z" fill="#8247E5" />
+      <path fillRule="evenodd" clipRule="evenodd" d="M19.5 0L38 10.7V32L19.5 21.3L1 32V10.7L19.5 0ZM29 10.2L19.5 4.7L10 10.2V21.2L19.5 26.7L29 21.2V10.2Z" fill="#8247E5" />
+    </svg>
+  );
+}
+
 export function Navbar() {
   const pathname = usePathname();
   const {
@@ -68,7 +91,7 @@ export function Navbar() {
 
   const isSepolia = chainId === 11155111;
   const isAmoy = chainId === 80002;
-  const chainLabel = isAmoy ? "Amoy" : "Sepolia";
+  const chainLabel = isAmoy ? "Polygon" : "Ethereum";
   const tokenSymbol = isAmoy ? "POL" : "ETH";
 
   return (
@@ -115,14 +138,22 @@ export function Navbar() {
             {isConnected ? (
               <button
                 onClick={() => setWalletDropdownOpen(!walletDropdownOpen)}
-                className="h-9 px-4 rounded-full bg-[#F8FAFC] hover:bg-[#F1F5F9] border border-[#E2E8F0] text-[#0F172A] text-xs font-semibold flex items-center gap-2 transition-all cursor-pointer shadow-xs"
+                className="h-10 px-3.5 rounded-full bg-white hover:bg-[#F8FAFC] border border-[#E2E8F0] hover:border-[#CBD5E1] text-[#0F172A] text-xs font-semibold flex items-center gap-2 transition-all cursor-pointer shadow-xs"
               >
-                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse shrink-0"></span>
-                <span className="font-mono text-[11px] text-[#64748B]">{chainLabel}</span>
+                {isAmoy ? (
+                  <div className="w-5 h-5 rounded-full bg-[#8247E5]/10 flex items-center justify-center shrink-0">
+                    <PolygonIcon className="w-3.5 h-3.5" />
+                  </div>
+                ) : (
+                  <div className="w-5 h-5 rounded-full bg-[#627EEA]/10 flex items-center justify-center shrink-0">
+                    <EthereumIcon className="w-3.5 h-3.5" />
+                  </div>
+                )}
+                <span className="font-semibold text-xs text-[#0F172A]">{chainLabel}</span>
                 <span className="text-[#CBD5E1]">•</span>
-                <span className="font-mono text-[11px] text-[#0F172A]">{balance} {tokenSymbol}</span>
+                <span className="font-semibold text-xs text-[#0F172A]">{balance} {tokenSymbol}</span>
                 <span className="text-[#CBD5E1]">•</span>
-                <span className="font-mono text-[11px] text-[#64748B]">{shortAddress}</span>
+                <span className="font-medium text-xs text-[#64748B]">{shortAddress}</span>
                 <ChevronDown className={`w-3.5 h-3.5 text-[#64748B] transition-transform ${walletDropdownOpen ? "rotate-180" : ""}`} />
               </button>
             ) : (
@@ -134,7 +165,7 @@ export function Navbar() {
                   connectWallet();
                 }}
                 disabled={isConnecting}
-                className="h-9 px-5 rounded-full bg-[#0F172A] hover:bg-black text-white text-xs font-semibold tracking-tight transition-all shadow-xs flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+                className="h-10 px-5 rounded-full bg-[#0F172A] hover:bg-black text-white text-xs font-semibold tracking-tight transition-all shadow-xs flex items-center gap-2 cursor-pointer disabled:opacity-50"
               >
                 <Wallet className="w-3.5 h-3.5" />
                 <span>{isConnecting ? "Connecting..." : "Connect Wallet"}</span>
@@ -149,7 +180,7 @@ export function Navbar() {
                 <div className="p-3 rounded-xl bg-[#F8FAFC] border border-[#F1F5F9] flex items-center justify-between">
                   <div className="min-w-0 pr-2">
                     <div className="text-[10px] text-[#94A3B8] uppercase font-semibold">Connected Wallet</div>
-                    <div className="text-xs font-mono font-semibold text-[#0F172A] truncate mt-0.5">{address}</div>
+                    <div className="text-xs font-medium text-[#0F172A] truncate mt-0.5">{address}</div>
                   </div>
                   <button
                     onClick={handleCopy}
@@ -162,29 +193,29 @@ export function Navbar() {
 
                 {/* Network Switcher */}
                 <div className="space-y-1.5">
-                  <div className="text-[10px] font-semibold text-[#94A3B8] uppercase px-1">Network Selector</div>
-                  <div className="grid grid-cols-2 gap-1.5 p-1 rounded-xl bg-[#F8FAFC] border border-[#F1F5F9] text-xs">
+                  <div className="text-[10px] font-bold text-[#94A3B8] uppercase px-1">Network Selector</div>
+                  <div className="grid grid-cols-2 gap-2 p-1 rounded-xl bg-[#F8FAFC] border border-[#F1F5F9] text-xs">
                     <button
                       onClick={() => switchNetwork("sepolia")}
-                      className={`py-2 px-2.5 rounded-lg transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+                      className={`py-2 px-2.5 rounded-lg transition-all flex items-center justify-center gap-2 cursor-pointer ${
                         isSepolia
-                          ? "bg-white text-[#0F172A] font-semibold shadow-xs"
+                          ? "bg-white text-[#0F172A] font-bold shadow-xs border border-[#E2E8F0]"
                           : "text-[#64748B] hover:text-[#0F172A]"
                       }`}
                     >
-                      <span className={`w-1.5 h-1.5 rounded-full ${isSepolia ? "bg-emerald-500" : "bg-[#CBD5E1]"}`}></span>
-                      <span>Sepolia</span>
+                      <EthereumIcon className="w-4 h-4 shrink-0" />
+                      <span>Ethereum</span>
                     </button>
                     <button
                       onClick={() => switchNetwork("amoy")}
-                      className={`py-2 px-2.5 rounded-lg transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+                      className={`py-2 px-2.5 rounded-lg transition-all flex items-center justify-center gap-2 cursor-pointer ${
                         isAmoy
-                          ? "bg-white text-[#0F172A] font-semibold shadow-xs"
+                          ? "bg-white text-[#0F172A] font-bold shadow-xs border border-[#E2E8F0]"
                           : "text-[#64748B] hover:text-[#0F172A]"
                       }`}
                     >
-                      <span className={`w-1.5 h-1.5 rounded-full ${isAmoy ? "bg-[#2563EB]" : "bg-[#CBD5E1]"}`}></span>
-                      <span>Amoy</span>
+                      <PolygonIcon className="w-4 h-4 shrink-0" />
+                      <span>Polygon</span>
                     </button>
                   </div>
                 </div>

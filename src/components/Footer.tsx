@@ -23,8 +23,8 @@ export function Footer() {
               Institutional-grade autonomous disaster liquidity vaults. Instant AI triage, cross-chain contingency releases, and zero-knowledge beneficiary aid.
             </p>
             <div className="flex items-center gap-2 pt-1 text-xs text-muted">
-              <span className="w-2 h-2 rounded-full bg-semantic-up"></span>
-              <span>All Systems Operational • Sepolia & Amoy Connected</span>
+              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+              <span>All Systems Operational • Ethereum & Polygon Connected</span>
             </div>
           </div>
 
