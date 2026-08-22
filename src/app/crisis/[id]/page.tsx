@@ -2,6 +2,7 @@
 
 import React, { useState } from "react";
 import Link from "next/link";
+import { LiveCrisisMap } from "@/components/LiveCrisisMap";
 import { 
   HeartHandshake, 
   ArrowLeft, 
@@ -377,6 +378,13 @@ export default function CrisisPage({ params }: { params: { id: string } }) {
               </div>
             </div>
 
+            {/* LARGE INTERACTIVE LIVE CRISIS MAP */}
+            <LiveCrisisMap 
+              crisisId={crisis.id} 
+              crisisTitle={crisis.title} 
+              locationName={crisis.location} 
+            />
+
             {/* Live Telemetry & AI Severity Monitor */}
             <div className="p-6 rounded-lg bg-surface-1 border border-hairline space-y-4">
               <div className="flex items-center justify-between pb-3 border-b border-hairline">
@@ -455,7 +463,7 @@ export default function CrisisPage({ params }: { params: { id: string } }) {
           </div>
 
           {/* Donation Terminal Box (1 Col) */}
-          <div className="p-6 rounded-lg bg-surface-1 border border-hairline flex flex-col justify-between h-fit sticky top-20">
+          <div id="donation-terminal" className="p-6 rounded-lg bg-surface-1 border border-hairline flex flex-col justify-between h-fit sticky top-20">
             <div>
               <div className="flex items-center justify-between pb-3 border-b border-hairline mb-5">
                 <div className="flex items-center gap-2">

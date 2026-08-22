@@ -267,9 +267,18 @@ export default function CommandCenterHome() {
                 CRITICAL DISPATCH
               </span>
             </div>
-            <div className="text-xs font-mono text-ink-subtle flex items-center gap-1.5">
-              <span>🔄 Last Updated:</span>
-              <strong className="text-ink font-semibold">3 sec ago</strong>
+            <div className="flex items-center gap-3">
+              <div className="text-xs font-mono text-ink-subtle flex items-center gap-1.5">
+                <span>🔄 Last Updated:</span>
+                <strong className="text-ink font-semibold">3 sec ago</strong>
+              </div>
+              <Link
+                href="/crisis/turkey-earthquake-2026#live-crisis-map"
+                className="hidden sm:inline-flex items-center gap-1 text-xs font-mono text-primary hover:underline"
+              >
+                <span>Live Crisis Map</span>
+                <span>→</span>
+              </Link>
             </div>
           </div>
 
