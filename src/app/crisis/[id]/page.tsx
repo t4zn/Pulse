@@ -1,8 +1,22 @@
 "use client";
 
+export const dynamic = "force-dynamic";
+
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
-import { LiveCrisisMap } from "@/components/LiveCrisisMap";
+import dynamicComponent from "next/dynamic";
+
+const LiveCrisisMap = dynamicComponent(
+  () => import("@/components/LiveCrisisMap").then((mod) => mod.LiveCrisisMap),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="w-full h-96 rounded-2xl bg-surface-soft border border-hairline flex items-center justify-center text-xs font-mono text-body">
+        Loading Interactive Crisis Map...
+      </div>
+    ),
+  }
+);
 import { 
   HeartHandshake, 
   ArrowLeft, 
