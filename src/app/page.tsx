@@ -399,198 +399,80 @@ export default function CommandCenterHome() {
       </section>
 
       {/* ────────────────────────────────────────────────────────────────────────
-          3. ACTIVE CRISES SECTION (Category Tabs, Telemetry Strip, Crisis Cards)
+          3. ACTIVE CRISES GLIMPSE (Ultra-Minimal 3-Card Streamlined Preview)
           ──────────────────────────────────────────────────────────────────────── */}
-      <section className="py-20 px-4 md:px-8 bg-white">
-        <div className="max-w-[1240px] mx-auto space-y-10">
+      <section className="py-14 px-4 md:px-8 bg-white">
+        <div className="max-w-[1240px] mx-auto space-y-6">
           
-          {/* Header & Tabs */}
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 pb-2">
-            <div className="space-y-1">
-              <h2 className="text-2xl sm:text-3xl font-bold tracking-tight text-[#0F172A] flex items-center gap-2.5">
-                <Radio className="w-6 h-6 text-[#2563EB]" />
-                <span>Active Disaster Liquidity Vaults</span>
+          {/* Minimal Section Header */}
+          <div className="flex items-center justify-between gap-4 pb-1">
+            <div>
+              <h2 className="text-xl sm:text-2xl font-bold tracking-tight text-[#0F172A] flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full bg-[#16A34A] animate-pulse"></span>
+                <span>Active Disaster Vaults</span>
               </h2>
-              <p className="text-sm text-[#475569]">
-                Live emergency pools receiving global liquidity and disbursing direct victim aid.
+              <p className="text-xs sm:text-sm text-[#475569] mt-0.5">
+                Live liquidity pools actively disbursing zero-gas victim aid.
               </p>
             </div>
 
-            {/* Category Filter Pills */}
-            <div className="flex items-center gap-1 p-1 rounded-full bg-[#F1F5F9] border border-[#E2E8F0] text-xs font-medium self-start md:self-auto">
-              <button
-                onClick={() => setActiveTab("all")}
-                className={`px-4 py-1.5 rounded-full transition-all ${
-                  activeTab === "all" ? "bg-white text-[#0F172A] font-bold shadow-sm" : "text-[#64748B] hover:text-[#0F172A]"
-                }`}
-              >
-                All ({crises.length})
-              </button>
-              <button
-                onClick={() => setActiveTab("earthquake")}
-                className={`px-4 py-1.5 rounded-full transition-all ${
-                  activeTab === "earthquake" ? "bg-white text-[#0F172A] font-bold shadow-sm" : "text-[#64748B] hover:text-[#0F172A]"
-                }`}
-              >
-                Earthquake
-              </button>
-              <button
-                onClick={() => setActiveTab("flood")}
-                className={`px-4 py-1.5 rounded-full transition-all ${
-                  activeTab === "flood" ? "bg-white text-[#0F172A] font-bold shadow-sm" : "text-[#64748B] hover:text-[#0F172A]"
-                }`}
-              >
-                Flood
-              </button>
-              <button
-                onClick={() => setActiveTab("drought")}
-                className={`px-4 py-1.5 rounded-full transition-all ${
-                  activeTab === "drought" ? "bg-white text-[#0F172A] font-bold shadow-sm" : "text-[#64748B] hover:text-[#0F172A]"
-                }`}
-              >
-                Drought
-              </button>
-            </div>
+            <Link
+              href="/crisis/turkey-earthquake-2026"
+              className="text-xs sm:text-sm font-semibold text-[#2563EB] hover:text-[#1D4ED8] flex items-center gap-1 shrink-0"
+            >
+              <span>Explore All</span>
+              <ArrowRight className="w-3.5 h-3.5" />
+            </Link>
           </div>
 
-          {/* Priority Telemetry Strip */}
-          <div className="p-6 rounded-2xl bg-[#F8FAFC] border border-[#E2E8F0] shadow-sm space-y-4">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-[#E2E8F0]">
-              <div className="flex items-center gap-2.5">
-                <span className="w-2.5 h-2.5 rounded-full bg-[#16A34A] animate-pulse" />
-                <span className="text-xs font-bold uppercase tracking-wider text-[#0F172A]">
-                  Priority Active Crisis Telemetry
-                </span>
-                <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-rose-50 text-rose-700 border border-rose-200">
-                  CRITICAL
-                </span>
-              </div>
-              <div className="flex items-center gap-4 text-xs font-mono text-[#475569]">
-                <div>Updated: <strong className="text-[#0F172A]">3s ago</strong></div>
-                <Link
-                  href="/crisis/turkey-earthquake-2026#live-crisis-map"
-                  className="text-[#2563EB] hover:underline font-semibold flex items-center gap-1"
-                >
-                  <span>Live Map</span>
-                  <span>&rarr;</span>
-                </Link>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 font-mono text-xs">
-              <div className="p-3 rounded-xl bg-white border border-[#E2E8F0]">
-                <div className="text-[10px] text-[#64748B] uppercase font-medium">Status</div>
-                <div className="text-rose-600 font-bold mt-0.5">Active — Critical</div>
-              </div>
-              <div className="p-3 rounded-xl bg-white border border-[#E2E8F0]">
-                <div className="text-[10px] text-[#64748B] uppercase font-medium">Started</div>
-                <div className="text-[#0F172A] font-semibold mt-0.5">14:32 UTC</div>
-              </div>
-              <div className="p-3 rounded-xl bg-white border border-[#E2E8F0]">
-                <div className="text-[10px] text-[#64748B] uppercase font-medium">Severity</div>
-                <div className="text-rose-600 font-bold mt-0.5">9.4 / 10</div>
-              </div>
-              <div className="p-3 rounded-xl bg-white border border-[#E2E8F0]">
-                <div className="text-[10px] text-[#64748B] uppercase font-medium">Affected</div>
-                <div className="text-[#0F172A] font-semibold mt-0.5">2.4M People</div>
-              </div>
-              <div className="p-3 rounded-xl bg-white border border-[#E2E8F0]">
-                <div className="text-[10px] text-[#64748B] uppercase font-medium">Immediate Aid</div>
-                <div className="text-[#2563EB] font-bold mt-0.5">842K Needed</div>
-              </div>
-              <div className="p-3 rounded-xl bg-white border border-[#E2E8F0]">
-                <div className="text-[10px] text-[#64748B] uppercase font-medium">Area</div>
-                <div className="text-[#0F172A] font-semibold mt-0.5">18,420 km&sup2;</div>
-              </div>
-            </div>
-          </div>
-
-          {/* Crisis Cards Grid */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            {filteredCrises.map((crisis) => {
+          {/* Minimal 3-Card Glimpse Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {crises.map((crisis) => {
               const percent = Math.min(100, Math.round((crisis.raisedUSD / crisis.targetUSD) * 100));
               return (
-                <div
+                <Link
                   key={crisis.id}
-                  className="flex flex-col justify-between p-6 sm:p-7 rounded-2xl bg-white border border-[#E2E8F0] hover:border-blue-300 hover:shadow-[0_12px_30px_rgba(15,23,42,0.06)] transition-all duration-300"
+                  href={`/crisis/${crisis.id}`}
+                  className="group p-5 rounded-2xl bg-[#F8FAFC] hover:bg-white border border-[#E2E8F0] hover:border-blue-300 hover:shadow-[0_8px_24px_rgba(15,23,42,0.06)] transition-all flex flex-col justify-between"
                 >
-                  <div className="space-y-4">
-                    {/* Top Status & Category Badge */}
+                  <div className="space-y-3">
                     <div className="flex items-center justify-between gap-2">
-                      <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold uppercase border ${crisis.statusBadge}`}>
+                      <span className={`px-2 py-0.5 rounded-full text-[10px] font-mono font-bold uppercase border ${crisis.statusBadge}`}>
                         {crisis.severityStatus} &bull; {crisis.severity}
                       </span>
-                      <span className="text-xs font-semibold text-[#64748B]">
-                        {crisis.categoryName}
-                      </span>
+                      <span className="text-[11px] font-mono text-[#64748B]">{crisis.categoryName}</span>
                     </div>
 
-                    {/* Crisis Title & Location */}
                     <div>
-                      <h3 className="text-lg font-bold text-[#0F172A] leading-snug">
+                      <h3 className="text-sm sm:text-base font-bold text-[#0F172A] group-hover:text-[#2563EB] transition-colors line-clamp-1">
                         {crisis.title}
                       </h3>
-                      <div className="text-xs text-[#475569] flex items-center gap-1.5 mt-1.5">
-                        <MapPin className="w-3.5 h-3.5 text-[#64748B]" />
+                      <div className="text-xs text-[#64748B] flex items-center gap-1 mt-1">
+                        <MapPin className="w-3 h-3 text-[#94A3B8]" />
                         <span>{crisis.location}</span>
                       </div>
                     </div>
 
-                    {/* Telemetry Sensor Box */}
-                    <div className="p-3.5 rounded-xl bg-[#F8FAFC] border border-[#E2E8F0] text-xs font-mono text-[#475569]">
-                      <div className="text-[10px] text-[#64748B] uppercase font-bold mb-0.5">Live Sensor:</div>
-                      <div className="text-[#0F172A]">{crisis.telemetry}</div>
-                    </div>
-
-                    {/* Funding Progress */}
-                    <div className="space-y-2 pt-1">
-                      <div className="flex items-center justify-between text-xs font-mono">
-                        <span className="text-[#475569]">Pool Raised:</span>
-                        <span className="text-[#0F172A] font-bold">${crisis.raisedUSD.toLocaleString()} / ${crisis.targetUSD.toLocaleString()}</span>
-                      </div>
-                      <div className="w-full h-2.5 bg-[#F1F5F9] rounded-full overflow-hidden">
+                    {/* Compact Progress Bar */}
+                    <div className="space-y-1.5 pt-1">
+                      <div className="w-full h-1.5 bg-[#E2E8F0] rounded-full overflow-hidden">
                         <div
-                          className="h-full bg-gradient-to-r from-[#2563EB] to-[#38BDF8] rounded-full transition-all duration-500"
+                          className="h-full bg-[#2563EB] rounded-full"
                           style={{ width: `${percent}%` }}
                         />
                       </div>
-                      <div className="flex items-center justify-between text-xs font-mono text-[#64748B]">
-                        <span className="font-semibold text-[#2563EB]">{percent}% Funded</span>
-                        <span>${crisis.disbursedUSD.toLocaleString()} Disbursed</span>
-                      </div>
-                    </div>
-
-                    {/* Multi-Chain Vaults */}
-                    <div className="grid grid-cols-2 gap-2 text-xs font-mono pt-3 border-t border-[#F1F5F9]">
-                      <div className="p-2.5 rounded-xl bg-[#F8FAFC] border border-[#E2E8F0]">
-                        <div className="text-[10px] text-[#64748B]">Sepolia Vault:</div>
-                        <div className="text-[#0F172A] font-bold truncate mt-0.5">{crisis.vaultAddresses.sepolia}</div>
-                      </div>
-                      <div className="p-2.5 rounded-xl bg-[#F8FAFC] border border-[#E2E8F0]">
-                        <div className="text-[10px] text-[#64748B]">Amoy Vault:</div>
-                        <div className="text-[#0F172A] font-bold truncate mt-0.5">{crisis.vaultAddresses.amoy}</div>
+                      <div className="flex items-center justify-between text-[11px] font-mono text-[#64748B]">
+                        <span>${crisis.raisedUSD.toLocaleString()} raised</span>
+                        <span className="font-semibold text-[#0F172A]">{percent}%</span>
                       </div>
                     </div>
                   </div>
 
-                  {/* Card Action Buttons */}
-                  <div className="grid grid-cols-2 gap-2.5 pt-5 mt-2">
-                    <Link
-                      href={`/crisis/${crisis.id}`}
-                      className="py-2.5 px-4 rounded-full bg-[#2563EB] hover:bg-[#1D4ED8] text-white text-xs font-semibold text-center flex items-center justify-center gap-1.5 shadow-sm transition-all"
-                    >
-                      <HeartHandshake className="w-3.5 h-3.5" />
-                      <span>Open Vault</span>
-                    </Link>
-                    <Link
-                      href="/audit"
-                      className="py-2.5 px-4 rounded-full bg-white hover:bg-[#F8FAFC] text-[#0F172A] text-xs font-semibold border border-[#E2E8F0] text-center flex items-center justify-center gap-1 shadow-sm transition-all"
-                    >
-                      <span>Audit Flow</span>
-                      <ArrowRight className="w-3 h-3 text-[#64748B]" />
-                    </Link>
+                  <div className="flex items-center justify-between pt-3 mt-3 border-t border-[#E2E8F0]/60 text-xs font-semibold text-[#2563EB]">
+                    <span>Open Vault</span>
+                    <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
                   </div>
-                </div>
+                </Link>
               );
             })}
           </div>

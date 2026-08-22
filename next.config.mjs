@@ -1,11 +1,26 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  reactStrictMode: true,
+  reactStrictMode: false,
+  transpilePackages: [
+    "ethers",
+    "lucide-react",
+    "@noble/hashes",
+    "@noble/curves",
+    "@adraffy/ens-normalize",
+  ],
   webpack: (config, { dev }) => {
     if (dev) {
-      // Disable filesystem packfile cache in dev to prevent vendor-chunks MODULE_NOT_FOUND during client navigation
-      config.cache = false;
+      // Use in-memory cache in dev to avoid macOS APFS file rename race conditions (.pack.gz)
+      config.cache = {
+        type: "memory",
+      };
     }
+    config.resolve.fallback = {
+      ...config.resolve.fallback,
+      fs: false,
+      net: false,
+      tls: false,
+    };
     return config;
   },
 };
