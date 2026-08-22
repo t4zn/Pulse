@@ -547,7 +547,7 @@ export default function CrisisFeedPage() {
                               value={donateAmount}
                               onChange={(e) => setDonateAmount(e.target.value)}
                               placeholder="Amount in USD"
-                              className="w-full pl-7 pr-3 py-2 rounded-xl bg-[#F8FAFC] border border-[#E2E8F0] text-xs font-medium text-[#0F172A] focus:outline-none focus:bg-white focus:border-[#2563EB] transition-colors font-sans"
+                              className="w-full pl-7 pr-3 py-2 rounded-xl bg-[#F8FAFC] border border-[#E2E8F0] text-xs font-medium text-[#0F172A] focus:outline-none focus:bg-white focus:border-[#2563EB] transition-colors font-sans [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                             />
                           </div>
 
