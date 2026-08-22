@@ -271,11 +271,6 @@ export default function CrisisDetailPage({ params }: { params: { id: string } })
   return (
     <div className="w-full bg-white text-ink min-h-screen py-8 px-4 md:px-8">
       <div className="max-w-[1280px] mx-auto">
-        {/* Back Link */}
-        <Link href="/" className="inline-flex items-center gap-1.5 text-xs font-mono text-body hover:text-ink mb-6 transition-colors">
-          <ArrowLeft className="w-3.5 h-3.5" /> Back to Command Center
-        </Link>
-
         {/* Page Header */}
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-8">
           <div>

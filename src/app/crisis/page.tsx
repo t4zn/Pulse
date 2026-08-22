@@ -1,5 +1,5 @@
-import CrisisDetailPage from "./[id]/page";
+import { redirect } from "next/navigation";
 
 export default function CrisisIndexPage() {
-  return <CrisisDetailPage params={{ id: "turkey-earthquake-2026" }} />;
+  redirect("/crisis/turkey-earthquake-2026");
 }

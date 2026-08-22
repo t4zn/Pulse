@@ -22,10 +22,6 @@ export default function OraclePage() {
   return (
     <div className="w-full bg-white text-ink min-h-screen py-8 px-4 md:px-8">
       <div className="max-w-[1280px] mx-auto">
-        <Link href="/" className="inline-flex items-center gap-1.5 text-xs font-mono text-body hover:text-ink mb-6 transition-colors">
-          <ArrowLeft className="w-3.5 h-3.5" /> Back to Command Center
-        </Link>
-
         {/* Page Header */}
         <div className="flex flex-col items-start gap-2 mb-8">
           <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-surface-soft border border-hairline text-xs font-mono text-primary">
