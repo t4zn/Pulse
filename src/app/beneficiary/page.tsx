@@ -3,16 +3,13 @@
 export const dynamic = "force-dynamic";
 
 import React, { useState, useMemo, useEffect } from "react";
-import Link from "next/link";
 import {
-  ArrowLeft,
   ShieldCheck,
   CheckCircle2,
   XCircle,
   Copy,
   Check,
   Loader2,
-  ExternalLink,
   ChevronDown,
   ChevronUp,
   Sparkles,
@@ -24,8 +21,6 @@ import {
   buildMerkleTree,
   generateProof,
   buildEIP712ClaimData,
-  hashAddress,
-  type MerkleTreeData,
   type MerkleProofResult,
 } from "@/lib/merkle";
 import { useWallet } from "@/context/WalletContext";
@@ -69,17 +64,17 @@ const CRISIS_OPTIONS = [
 ];
 
 export default function BeneficiaryPage() {
-  const { address: connectedAddress, isConnected, connectWallet, signClaimMessage } = useWallet();
+  const { address: connectedAddress, isConnected, connectWallet, switchAccount, signClaimMessage } = useWallet();
 
   const [selectedCrisisId, setSelectedCrisisId] = useState(CRISIS_OPTIONS[0].id);
-  const [recipientAddress, setRecipientAddress] = useState(DEMO_BENEFICIARIES[0]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isConfirmed, setIsConfirmed] = useState(false);
   const [claimTxHash, setClaimTxHash] = useState("");
-  const [claimTimestamp, setClaimTimestamp] = useState("");
   const [showTechnicalDetails, setShowTechnicalDetails] = useState(false);
   const [copied, setCopied] = useState(false);
   const [statusMessage, setStatusMessage] = useState("");
+
+  const recipientAddress = connectedAddress || "";
 
   const activeCrisis = useMemo(() => {
     return CRISIS_OPTIONS.find((c) => c.id === selectedCrisisId) || CRISIS_OPTIONS[0];
@@ -94,7 +89,7 @@ export default function BeneficiaryPage() {
     return buildMerkleTree(addresses);
   }, [connectedAddress]);
 
-  // Compute live Merkle Proof for entered recipient
+  // Compute live Merkle Proof for connected recipient
   const proofResult = useMemo<MerkleProofResult | null>(() => {
     if (!recipientAddress || !recipientAddress.startsWith("0x") || recipientAddress.length !== 42) {
       return null;
@@ -119,39 +114,29 @@ export default function BeneficiaryPage() {
     );
   }, [recipientAddress, activeCrisis]);
 
-  // Autofill with connected wallet
-  const handleAutofill = () => {
-    if (connectedAddress) {
-      setRecipientAddress(connectedAddress);
-    } else {
-      connectWallet();
-    }
-  };
-
   const handleCopy = (text: string) => {
     navigator.clipboard.writeText(text);
     setCopied(true);
     setTimeout(() => setCopied(false), 1500);
   };
 
-  // Submit Claim (Real MetaMask EIP-712 Signing + Relayer Broadcast)
   const handleClaim = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!proofResult || !proofResult.valid) return;
 
     setIsSubmitting(true);
-    setStatusMessage("Requesting gasless EIP-712 signature in MetaMask...");
+    setStatusMessage("Requesting EIP-712 signature...");
 
     try {
       if (isConnected) {
         const signResult = await signClaimMessage(eip712Data);
         if (!signResult.success) {
-          console.warn("MetaMask signature cancelled, continuing with sponsored relayer simulation.");
+          console.warn("MetaMask signature cancelled, using sponsored relayer simulation.");
         }
       }
 
-      setStatusMessage("Submitting to Pulse Gasless Relayer on Polygon Amoy...");
-      await new Promise((r) => setTimeout(r, 1200));
+      setStatusMessage("Submitting meta-tx to Polygon Amoy...");
+      await new Promise((r) => setTimeout(r, 1000));
 
       const fakeTxHash =
         "0x" +
@@ -160,7 +145,6 @@ export default function BeneficiaryPage() {
         ).join("");
 
       setClaimTxHash(fakeTxHash);
-      setClaimTimestamp(new Date().toUTCString());
       setIsConfirmed(true);
       setIsSubmitting(false);
       setStatusMessage("");
@@ -174,161 +158,157 @@ export default function BeneficiaryPage() {
   const resetForm = () => {
     setIsConfirmed(false);
     setClaimTxHash("");
-    setRecipientAddress(DEMO_BENEFICIARIES[0]);
   };
 
   return (
-    <div className="w-full bg-[#FFFFFF] text-[#0F172A] min-h-screen py-10 px-4 font-sans selection:bg-blue-100 selection:text-blue-900">
-      <div className="max-w-xl mx-auto space-y-6">
-        {/* Unified 1-Form Card */}
-        <div className="rounded-3xl bg-white border border-[#E2E8F0] shadow-[0_8px_30px_rgba(15,23,42,0.06)] overflow-hidden">
+    <div className="w-full bg-[#FAFAFA] text-[#0F172A] min-h-[calc(100vh-64px)] flex items-center justify-center py-12 px-4">
+      <div className="w-full max-w-lg">
+        
+        {/* Unified Clean Form Card */}
+        <div className="rounded-2xl bg-white border border-[#E2E8F0] shadow-sm overflow-hidden">
           
-          {/* Form Header */}
-          <div className="p-6 sm:p-8 pb-6 border-b border-[#F1F5F9] space-y-3">
-            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 text-[#16A34A] border border-emerald-200 text-xs font-mono font-medium">
-              <ShieldCheck className="w-3.5 h-3.5" />
-              <span>Zero-Knowledge Identity Protection Active</span>
+          {/* Header */}
+          <div className="p-6 sm:p-7 pb-5 border-b border-[#F1F5F9]">
+            <div className="flex items-center gap-1.5 text-xs font-medium text-emerald-600 mb-2">
+              <ShieldCheck className="w-4 h-4" />
+              <span>Zero-Knowledge Verification</span>
             </div>
 
-            <div>
-              <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-[#0F172A]">
-                Beneficiary Aid Claim
-              </h1>
-              <p className="text-xs sm:text-sm text-[#475569] mt-1 leading-relaxed">
-                Claim disaster aid with <strong>$0 gas fees</strong> via EIP-712 meta-transactions. Only 32-byte Keccak256 Merkle roots are committed on-chain.
-              </p>
-            </div>
+            <h1 className="text-xl sm:text-2xl font-semibold tracking-tight text-[#0F172A]">
+              Beneficiary Aid Claim
+            </h1>
+            <p className="text-xs sm:text-[13px] text-[#64748B] mt-1 leading-relaxed">
+              Verify your identity and claim direct relief with $0 network gas fees.
+            </p>
           </div>
 
-          {/* Form Body */}
+          {/* Form */}
           {!isConfirmed ? (
-            <form onSubmit={handleClaim} className="p-6 sm:p-8 space-y-5">
+            <form onSubmit={handleClaim} className="p-6 sm:p-7 space-y-4">
               
-              {/* Field 1: Crisis Selection */}
+              {/* Field 1: Disaster Pool */}
               <div className="space-y-1.5">
-                <label className="text-xs font-bold text-[#0F172A] uppercase tracking-wider font-mono">
-                  Select Disaster Pool
+                <label className="text-xs font-medium text-[#475569]">
+                  Disaster Pool
                 </label>
                 <div className="relative">
                   <select
                     value={selectedCrisisId}
                     onChange={(e) => setSelectedCrisisId(e.target.value)}
-                    className="w-full py-3 px-3.5 pr-10 rounded-xl bg-[#F8FAFC] border border-[#E2E8F0] text-sm text-[#0F172A] font-medium focus:outline-none focus:border-[#2563EB] focus:bg-white transition-all appearance-none cursor-pointer"
+                    className="w-full py-2.5 px-3 pr-9 rounded-lg bg-[#F8FAFC] border border-[#E2E8F0] text-sm text-[#0F172A] focus:outline-none focus:border-[#2563EB] focus:bg-white transition-all appearance-none cursor-pointer"
                   >
                     {CRISIS_OPTIONS.map((crisis) => (
                       <option key={crisis.id} value={crisis.id}>
-                        {crisis.title} • {crisis.amount} {crisis.currency} Payout
+                        {crisis.title}
                       </option>
                     ))}
                   </select>
-                  <ChevronDown className="w-4 h-4 text-[#64748B] absolute right-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                  <ChevronDown className="w-4 h-4 text-[#94A3B8] absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
                 </div>
               </div>
 
-              {/* Field 2: Beneficiary Address */}
+              {/* Field 2: Relief Amount */}
               <div className="space-y-1.5">
                 <div className="flex items-center justify-between">
-                  <label className="text-xs font-bold text-[#0F172A] uppercase tracking-wider font-mono">
-                    Recipient Wallet Address
+                  <label className="text-xs font-medium text-[#475569]">
+                    Approved Amount
                   </label>
-                  <button
-                    type="button"
-                    onClick={handleAutofill}
-                    className="text-xs font-semibold text-[#2563EB] hover:text-[#1D4ED8] flex items-center gap-1 transition-colors"
-                  >
-                    <Wallet className="w-3 h-3" />
-                    <span>{connectedAddress ? "Autofill Connected" : "Connect MetaMask"}</span>
-                  </button>
+                  <span className="text-[11px] text-emerald-600 font-medium">
+                    100% Direct Payout
+                  </span>
                 </div>
-
-                <input
-                  type="text"
-                  value={recipientAddress}
-                  onChange={(e) => setRecipientAddress(e.target.value.trim())}
-                  placeholder="0x..."
-                  className="w-full py-3 px-3.5 rounded-xl bg-[#F8FAFC] border border-[#E2E8F0] text-xs font-mono text-[#0F172A] focus:outline-none focus:border-[#2563EB] focus:bg-white transition-all"
-                  required
-                />
+                <div className="relative flex items-center">
+                  <input
+                    type="text"
+                    value={`${activeCrisis.amount}.00`}
+                    readOnly
+                    className="w-full py-2.5 px-3 pr-16 rounded-lg bg-[#F8FAFC] border border-[#E2E8F0] text-sm font-semibold text-[#0F172A] focus:outline-none select-none cursor-default"
+                  />
+                  <div className="absolute right-2.5 px-2 py-0.5 rounded bg-blue-50 text-[#2563EB] text-xs font-medium border border-blue-100">
+                    {activeCrisis.currency}
+                  </div>
+                </div>
               </div>
 
-              {/* Field 3: Live Verification Status Chip */}
-              <div className="p-3.5 rounded-2xl bg-[#F8FAFC] border border-[#E2E8F0] space-y-2">
-                <div className="flex items-center justify-between text-xs">
-                  <span className="font-semibold text-[#475569]">Merkle Verification:</span>
-                  {proofResult && proofResult.valid ? (
-                    <span className="inline-flex items-center gap-1.5 font-mono font-bold text-[#16A34A] bg-emerald-50 px-2.5 py-0.5 rounded-full border border-emerald-200 text-[11px]">
-                      <CheckCircle2 className="w-3.5 h-3.5" />
-                      Eligible (Leaf #{proofResult.index})
-                    </span>
-                  ) : (
-                    <span className="inline-flex items-center gap-1.5 font-mono font-bold text-amber-600 bg-amber-50 px-2.5 py-0.5 rounded-full border border-amber-200 text-[11px]">
-                      <XCircle className="w-3.5 h-3.5" />
-                      Not Registered
-                    </span>
-                  )}
-                </div>
+              {/* Field 3: Automated Beneficiary Wallet Connection */}
+              <div className="space-y-1.5">
+                <label className="text-xs font-medium text-[#475569]">
+                  Beneficiary Wallet
+                </label>
 
-                {(!proofResult || !proofResult.valid) && (
-                  <div className="text-[11px] text-[#64748B] flex items-center justify-between pt-1 border-t border-[#E2E8F0]">
-                    <span>Address not in registry</span>
+                {!isConnected ? (
+                  <button
+                    type="button"
+                    onClick={connectWallet}
+                    className="w-full py-3 px-3 rounded-lg bg-[#F8FAFC] hover:bg-[#F1F5F9] border border-[#E2E8F0] text-xs font-medium text-[#0F172A] flex items-center justify-center gap-2 transition-all cursor-pointer"
+                  >
+                    <Wallet className="w-4 h-4 text-[#2563EB]" />
+                    <span>Connect Wallet</span>
+                  </button>
+                ) : (
+                  <div className="py-2.5 px-3 rounded-lg bg-[#F8FAFC] border border-[#E2E8F0] flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <div className="w-2 h-2 rounded-full bg-emerald-500 shrink-0" />
+                      <span className="text-xs font-mono text-[#0F172A]">
+                        {connectedAddress ? `${connectedAddress.slice(0, 10)}...${connectedAddress.slice(-8)}` : "Connected"}
+                      </span>
+                    </div>
                     <button
                       type="button"
-                      onClick={() => setRecipientAddress(DEMO_BENEFICIARIES[0])}
-                      className="text-[#2563EB] hover:underline font-semibold"
+                      onClick={switchAccount}
+                      className="text-xs text-[#2563EB] hover:text-[#1D4ED8] font-medium"
                     >
-                      Use Demo Address
+                      Switch
                     </button>
+                  </div>
+                )}
+
+                {/* Inline Status */}
+                {isConnected && (
+                  <div className="pt-0.5 flex items-center justify-between text-xs">
+                    {proofResult && proofResult.valid ? (
+                      <div className="flex items-center gap-1.5 text-emerald-600 font-medium text-[11px]">
+                        <CheckCircle2 className="w-3.5 h-3.5" />
+                        <span>Eligible for Payout</span>
+                      </div>
+                    ) : (
+                      <div className="flex items-center justify-between w-full text-[11px]">
+                        <span className="text-amber-600 flex items-center gap-1">
+                          <XCircle className="w-3.5 h-3.5" /> Not eligible for payout
+                        </span>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
 
-              {/* Field 4: Payout & Gas Breakdown */}
-              <div className="grid grid-cols-2 gap-3 font-mono text-xs">
-                <div className="p-3.5 rounded-2xl bg-[#F8FAFC] border border-[#E2E8F0]">
-                  <div className="text-[10px] text-[#64748B] uppercase font-bold">Claim Allocation</div>
-                  <div className="text-xl font-bold text-[#0F172A] mt-0.5">
-                    {activeCrisis.amount}.00 <span className="text-xs font-normal text-[#64748B]">{activeCrisis.currency}</span>
-                  </div>
-                </div>
-                <div className="p-3.5 rounded-2xl bg-[#F8FAFC] border border-[#E2E8F0]">
-                  <div className="text-[10px] text-[#64748B] uppercase font-bold">Network Gas Fee</div>
-                  <div className="text-xl font-bold text-[#16A34A] mt-0.5">
-                    $0.00 <span className="text-xs font-normal text-[#16A34A]">(Sponsored)</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Technical Proof Details (Collapsible) */}
+              {/* Technical Details Toggle */}
               <div className="pt-1">
                 <button
                   type="button"
                   onClick={() => setShowTechnicalDetails(!showTechnicalDetails)}
-                  className="w-full flex items-center justify-between py-2 text-xs font-semibold text-[#64748B] hover:text-[#0F172A] transition-colors"
+                  className="w-full flex items-center justify-between py-1 text-xs text-[#64748B] hover:text-[#0F172A] transition-colors"
                 >
                   <div className="flex items-center gap-1.5">
-                    <Lock className="w-3.5 h-3.5 text-[#2563EB]" />
-                    <span>Cryptographic Merkle Proof Details</span>
+                    <Lock className="w-3 h-3 text-[#2563EB]" />
+                    <span>Technical Proof Details</span>
                   </div>
-                  {showTechnicalDetails ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                  {showTechnicalDetails ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
                 </button>
 
                 {showTechnicalDetails && proofResult && (
-                  <div className="mt-2 p-3.5 rounded-2xl bg-[#F8FAFC] border border-[#E2E8F0] space-y-2 text-[11px] font-mono text-[#475569] animate-in fade-in duration-150">
+                  <div className="mt-2 p-3 rounded-lg bg-[#F8FAFC] border border-[#E2E8F0] space-y-1.5 text-[11px] font-mono text-[#475569]">
                     <div className="flex justify-between">
-                      <span className="text-[#64748B]">Merkle Root:</span>
-                      <span className="text-[#0F172A] font-bold truncate max-w-[200px]">{treeData.root}</span>
+                      <span className="text-[#94A3B8]">Merkle Root:</span>
+                      <span className="text-[#0F172A] truncate max-w-[200px]">{treeData.root}</span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-[#64748B]">Leaf Hash:</span>
-                      <span className="text-[#0F172A] font-bold truncate max-w-[200px]">{proofResult.leaf}</span>
+                      <span className="text-[#94A3B8]">Leaf Hash:</span>
+                      <span className="text-[#0F172A] truncate max-w-[200px]">{proofResult.leaf}</span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-[#64748B]">Proof Sibling Nodes:</span>
-                      <span className="text-[#0F172A] font-bold">{proofResult.proof.length} nodes (Depth 4)</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-[#64748B]">Domain:</span>
-                      <span className="text-[#0F172A] font-bold">PulseBeneficiaryRegistry</span>
+                      <span className="text-[#94A3B8]">Network:</span>
+                      <span className="text-[#0F172A]">Polygon Amoy (80002)</span>
                     </div>
                   </div>
                 )}
@@ -336,98 +316,95 @@ export default function BeneficiaryPage() {
 
               {/* Status Notice if loading */}
               {isSubmitting && statusMessage && (
-                <div className="p-3 rounded-xl bg-blue-50 border border-blue-200 text-xs font-mono text-[#2563EB] flex items-center gap-2">
-                  <Loader2 className="w-4 h-4 animate-spin shrink-0" />
+                <div className="p-2.5 rounded-lg bg-blue-50 border border-blue-100 text-xs text-[#2563EB] flex items-center gap-2">
+                  <Loader2 className="w-3.5 h-3.5 animate-spin shrink-0" />
                   <span>{statusMessage}</span>
                 </div>
               )}
 
               {/* Action Submit Button */}
-              <button
-                type="submit"
-                disabled={isSubmitting || !proofResult?.valid}
-                className="w-full py-4 px-6 rounded-2xl bg-[#2563EB] hover:bg-[#1D4ED8] active:bg-[#1E40AF] disabled:bg-[#CBD5E1] text-white text-sm font-semibold flex items-center justify-center gap-2 shadow-[0_4px_14px_rgba(37,99,235,0.25)] disabled:shadow-none transition-all cursor-pointer disabled:cursor-not-allowed"
-              >
-                {isSubmitting ? (
-                  <>
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                    <span>Processing Gasless Meta-Tx...</span>
-                  </>
-                ) : (
-                  <>
-                    <Sparkles className="w-4 h-4" />
-                    <span>Sign with MetaMask & Claim {activeCrisis.amount} {activeCrisis.currency}</span>
-                  </>
-                )}
-              </button>
+              {!isConnected && !recipientAddress ? (
+                <button
+                  type="button"
+                  onClick={connectWallet}
+                  className="w-full py-3 px-4 rounded-xl bg-[#2563EB] hover:bg-[#1D4ED8] active:bg-[#1E40AF] text-white text-sm font-medium flex items-center justify-center gap-2 shadow-sm transition-all cursor-pointer mt-2"
+                >
+                  <Wallet className="w-4 h-4" />
+                  <span>Connect Wallet to Claim</span>
+                </button>
+              ) : (
+                <button
+                  type="submit"
+                  disabled={isSubmitting || !proofResult?.valid}
+                  className="w-full py-3 px-4 rounded-xl bg-[#2563EB] hover:bg-[#1D4ED8] active:bg-[#1E40AF] disabled:bg-[#CBD5E1] text-white text-sm font-medium flex items-center justify-center gap-2 shadow-sm transition-all cursor-pointer disabled:cursor-not-allowed mt-2"
+                >
+                  {isSubmitting ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      <span>Claiming Aid...</span>
+                    </>
+                  ) : (
+                    <span>Claim Aid</span>
+                  )}
+                </button>
+              )}
 
-              <div className="text-center text-[11px] font-mono text-[#64748B]">
-                Zero-Knowledge EIP-712 Meta-Transaction • Sponsored by Pulse Relayer
+              {/* Minimal Footer Note */}
+              <div className="flex items-center justify-between text-[11px] text-[#64748B] pt-1 px-1">
+                <span>Polygon Amoy Testnet</span>
+                <span className="text-emerald-600 font-medium">Gas: $0.00 (Sponsored)</span>
               </div>
             </form>
           ) : (
             /* Confirmed Receipt View */
-            <div className="p-6 sm:p-8 text-center space-y-6 animate-in fade-in duration-200">
-              
-              <div className="w-16 h-16 rounded-full bg-emerald-50 border border-emerald-200 flex items-center justify-center text-[#16A34A] mx-auto shadow-sm">
-                <CheckCircle2 className="w-8 h-8" />
+            <div className="p-6 sm:p-7 text-center space-y-5">
+              <div className="w-12 h-12 rounded-full bg-emerald-50 border border-emerald-200 flex items-center justify-center text-emerald-600 mx-auto">
+                <CheckCircle2 className="w-6 h-6" />
               </div>
 
               <div className="space-y-1">
-                <h2 className="text-2xl font-bold text-[#0F172A]">
-                  Aid Claim Confirmed!
+                <h2 className="text-lg font-semibold text-[#0F172A]">
+                  Aid Claim Confirmed
                 </h2>
-                <p className="text-xs sm:text-sm text-[#475569]">
-                  <strong>{activeCrisis.amount}.00 {activeCrisis.currency}</strong> has been transferred to your address via sponsored meta-transaction.
+                <p className="text-xs text-[#64748B]">
+                  <strong>{activeCrisis.amount}.00 {activeCrisis.currency}</strong> transferred to recipient address.
                 </p>
               </div>
 
-              {/* Receipt Summary Card */}
-              <div className="p-4 rounded-2xl bg-[#F8FAFC] border border-[#E2E8F0] text-xs font-mono text-left space-y-2.5">
-                <div className="flex items-center justify-between pb-2 border-b border-[#E2E8F0]">
-                  <span className="text-[#64748B]">Status:</span>
-                  <span className="text-[#16A34A] font-bold flex items-center gap-1">
-                    <Check className="w-3.5 h-3.5" /> Disbursed on Polygon Amoy
-                  </span>
-                </div>
-
+              <div className="p-3.5 rounded-xl bg-[#F8FAFC] border border-[#E2E8F0] text-xs font-mono text-left space-y-2">
                 <div className="flex items-center justify-between">
-                  <span className="text-[#64748B]">Recipient:</span>
-                  <span className="text-[#0F172A] font-bold">{recipientAddress.slice(0, 8)}...{recipientAddress.slice(-6)}</span>
+                  <span className="text-[#94A3B8]">Recipient:</span>
+                  <span className="text-[#0F172A]">{recipientAddress.slice(0, 8)}...{recipientAddress.slice(-6)}</span>
                 </div>
-
                 <div className="flex items-center justify-between">
-                  <span className="text-[#64748B]">Amount:</span>
-                  <span className="text-[#0F172A] font-bold">{activeCrisis.amount}.00 {activeCrisis.currency}</span>
+                  <span className="text-[#94A3B8]">Amount:</span>
+                  <span className="text-[#0F172A] font-semibold">{activeCrisis.amount}.00 {activeCrisis.currency}</span>
                 </div>
-
                 <div className="flex items-center justify-between">
-                  <span className="text-[#64748B]">Gas Paid:</span>
-                  <span className="text-[#16A34A] font-bold">$0.00 (Pulse Relayer)</span>
+                  <span className="text-[#94A3B8]">Gas Fee:</span>
+                  <span className="text-emerald-600 font-medium">$0.00 (Sponsored)</span>
                 </div>
-
-                <div className="flex items-center justify-between pt-2 border-t border-[#E2E8F0]">
-                  <span className="text-[#64748B]">Tx Hash:</span>
+                <div className="flex items-center justify-between pt-1 border-t border-[#E2E8F0]">
+                  <span className="text-[#94A3B8]">Tx Hash:</span>
                   <div className="flex items-center gap-1.5">
-                    <span className="text-[#0F172A] font-bold">{claimTxHash.slice(0, 10)}...</span>
+                    <span className="text-[#0F172A]">{claimTxHash.slice(0, 10)}...</span>
                     <button
                       onClick={() => handleCopy(claimTxHash)}
-                      className="p-1 hover:text-[#2563EB]"
+                      className="p-0.5 hover:text-[#2563EB]"
                       title="Copy Hash"
                     >
-                      {copied ? <Check className="w-3.5 h-3.5 text-[#16A34A]" /> : <Copy className="w-3.5 h-3.5" />}
+                      {copied ? <Check className="w-3 h-3 text-emerald-600" /> : <Copy className="w-3 h-3 text-[#64748B]" />}
                     </button>
                   </div>
                 </div>
               </div>
 
-              {/* Reset Action */}
               <button
                 type="button"
                 onClick={resetForm}
-                className="w-full py-3.5 px-6 rounded-2xl bg-[#F8FAFC] hover:bg-white text-[#0F172A] hover:text-[#2563EB] text-xs font-semibold border border-[#E2E8F0] hover:border-blue-300 shadow-sm flex items-center justify-center gap-2 transition-all cursor-pointer"
+                className="w-full py-2.5 px-4 rounded-xl bg-[#F8FAFC] hover:bg-[#F1F5F9] text-[#0F172A] text-xs font-medium border border-[#E2E8F0] transition-colors flex items-center justify-center gap-2"
               >
-                <RefreshCw className="w-3.5 h-3.5" />
+                <RefreshCw className="w-3 h-3" />
                 <span>Claim for Another Address</span>
               </button>
             </div>

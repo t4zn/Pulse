@@ -18,6 +18,7 @@ interface WalletContextType {
   connectWallet: () => Promise<string | null>;
   disconnectWallet: () => void;
   switchNetwork: (target: "sepolia" | "amoy") => Promise<boolean>;
+  switchAccount: () => Promise<string | null>;
   refreshAccount: () => Promise<void>;
   sendDonation: (
     toAddress: string,
@@ -250,6 +251,41 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
     setBalanceRaw(null);
   }, []);
 
+  // Switch MetaMask Account / Choose Account
+  const switchAccount = useCallback(async (): Promise<string | null> => {
+    const eth = getEthereumProvider();
+    if (!eth) return null;
+
+    try {
+      if (typeof window !== "undefined") {
+        localStorage.removeItem(DISCONNECT_STORAGE_KEY);
+      }
+      // EIP-2255: Request permissions pops MetaMask account switcher dialog
+      await eth.request({
+        method: "wallet_requestPermissions",
+        params: [{ eth_accounts: {} }],
+      });
+      const accounts = await eth.request({ method: "eth_accounts" });
+      if (accounts && accounts.length > 0) {
+        const newAddr = accounts[0];
+        setAddress(newAddr);
+        await updateBalance(newAddr);
+        return newAddr;
+      }
+    } catch (err: any) {
+      console.warn("Account switch request cancelled or failed:", err);
+      try {
+        const accounts = await eth.request({ method: "eth_accounts" });
+        if (accounts && accounts.length > 0) {
+          setAddress(accounts[0]);
+          await updateBalance(accounts[0]);
+          return accounts[0];
+        }
+      } catch (e) {}
+    }
+    return null;
+  }, [updateBalance]);
+
   // Switch network between Sepolia and Amoy
   const switchNetwork = useCallback(async (target: "sepolia" | "amoy"): Promise<boolean> => {
     const eth = getEthereumProvider();
@@ -432,6 +468,7 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
         connectWallet,
         disconnectWallet,
         switchNetwork,
+        switchAccount,
         refreshAccount,
         sendDonation,
         signClaimMessage,
