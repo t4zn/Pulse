@@ -177,41 +177,41 @@ export default function BeneficiaryPage() {
   };
 
   return (
-    <div className="w-full bg-[#FAFAFA] text-[#0F172A] min-h-[calc(100vh-64px)] flex items-center justify-center py-12 px-4">
-      <div className="w-full max-w-lg">
+    <div className="w-full bg-[#FAFAFA] text-[#0F172A] min-h-[calc(100vh-64px)] flex items-center justify-center py-14 px-4">
+      <div className="w-full max-w-xl">
         
         {/* Unified Clean Form Card */}
-        <div className="rounded-2xl bg-white border border-[#E2E8F0] shadow-sm overflow-hidden">
+        <div className="rounded-3xl bg-white border border-[#E2E8F0] shadow-[0_4px_24px_rgba(0,0,0,0.03)] overflow-hidden">
           
           {/* Header */}
-          <div className="p-6 sm:p-7 pb-5 border-b border-[#F1F5F9]">
-            <div className="flex items-center gap-1.5 text-xs font-medium text-emerald-600 mb-2">
+          <div className="p-8 sm:p-10 pb-6 border-b border-[#F1F5F9] space-y-2">
+            <div className="inline-flex items-center gap-1.5 text-xs font-medium text-emerald-600 mb-1">
               <ShieldCheck className="w-4 h-4" />
               <span>Zero-Knowledge Verification</span>
             </div>
 
-            <h1 className="text-xl sm:text-2xl font-semibold tracking-tight text-[#0F172A]">
+            <h1 className="text-2xl sm:text-[28px] font-semibold tracking-tight text-[#0F172A]">
               Beneficiary Aid Claim
             </h1>
-            <p className="text-xs sm:text-[13px] text-[#64748B] mt-1 leading-relaxed">
-              Verify your identity and claim direct relief with $0 network gas fees.
+            <p className="text-sm text-[#64748B] leading-relaxed">
+              Verify your identity and claim direct disaster relief.
             </p>
           </div>
 
           {/* Form */}
           {!isConfirmed ? (
-            <form onSubmit={handleClaim} className="p-6 sm:p-7 space-y-4">
+            <form onSubmit={handleClaim} className="p-8 sm:p-10 space-y-5">
               
               {/* Field 1: Disaster Pool */}
-              <div className="space-y-1.5">
-                <label className="text-xs font-medium text-[#475569]">
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-[#334155]">
                   Disaster Pool
                 </label>
                 <div className="relative">
                   <select
                     value={selectedCrisisId}
                     onChange={(e) => setSelectedCrisisId(e.target.value)}
-                    className="w-full py-2.5 px-3 pr-9 rounded-lg bg-[#F8FAFC] border border-[#E2E8F0] text-sm text-[#0F172A] focus:outline-none focus:border-[#2563EB] focus:bg-white transition-all appearance-none cursor-pointer"
+                    className="w-full py-3.5 px-4 pr-10 rounded-xl bg-[#F8FAFC] border border-[#E2E8F0] text-base text-[#0F172A] focus:outline-none focus:border-[#2563EB] focus:bg-white transition-all appearance-none cursor-pointer"
                   >
                     {CRISIS_OPTIONS.map((crisis) => (
                       <option key={crisis.id} value={crisis.id}>
@@ -219,17 +219,17 @@ export default function BeneficiaryPage() {
                       </option>
                     ))}
                   </select>
-                  <ChevronDown className="w-4 h-4 text-[#94A3B8] absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                  <ChevronDown className="w-5 h-5 text-[#94A3B8] absolute right-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
                 </div>
               </div>
 
               {/* Field 2: Relief Amount */}
-              <div className="space-y-1.5">
+              <div className="space-y-2">
                 <div className="flex items-center justify-between">
-                  <label className="text-xs font-medium text-[#475569]">
+                  <label className="text-sm font-medium text-[#334155]">
                     Approved Amount
                   </label>
-                  <span className="text-[11px] text-emerald-600 font-medium">
+                  <span className="text-xs text-emerald-600 font-medium">
                     100% Direct Payout
                   </span>
                 </div>
@@ -238,17 +238,17 @@ export default function BeneficiaryPage() {
                     type="text"
                     value={`${activeCrisis.amount}.00`}
                     readOnly
-                    className="w-full py-2.5 px-3 pr-16 rounded-lg bg-[#F8FAFC] border border-[#E2E8F0] text-sm font-semibold text-[#0F172A] focus:outline-none select-none cursor-default"
+                    className="w-full py-3.5 px-4 pr-20 rounded-xl bg-[#F8FAFC] border border-[#E2E8F0] text-lg font-semibold text-[#0F172A] focus:outline-none select-none cursor-default"
                   />
-                  <div className="absolute right-2.5 px-2 py-0.5 rounded bg-blue-50 text-[#2563EB] text-xs font-medium border border-blue-100">
+                  <div className="absolute right-3 px-3 py-1 rounded-lg bg-blue-50 text-[#2563EB] text-xs font-semibold border border-blue-100">
                     {activeCrisis.currency}
                   </div>
                 </div>
               </div>
 
               {/* Field 3: Automated Beneficiary Wallet Connection */}
-              <div className="space-y-1.5">
-                <label className="text-xs font-medium text-[#475569]">
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-[#334155]">
                   Beneficiary Wallet
                 </label>
 
@@ -256,16 +256,16 @@ export default function BeneficiaryPage() {
                   <button
                     type="button"
                     onClick={connectWallet}
-                    className="w-full py-3 px-3 rounded-lg bg-[#F8FAFC] hover:bg-[#F1F5F9] border border-[#E2E8F0] text-xs font-medium text-[#0F172A] flex items-center justify-center gap-2 transition-all cursor-pointer"
+                    className="w-full py-3.5 px-4 rounded-xl bg-[#F8FAFC] hover:bg-[#F1F5F9] border border-[#E2E8F0] text-sm font-medium text-[#0F172A] flex items-center justify-center gap-2 transition-all cursor-pointer"
                   >
                     <Wallet className="w-4 h-4 text-[#2563EB]" />
                     <span>Connect Wallet</span>
                   </button>
                 ) : (
-                  <div className="py-2.5 px-3 rounded-lg bg-[#F8FAFC] border border-[#E2E8F0] flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <div className="w-2 h-2 rounded-full bg-emerald-500 shrink-0" />
-                      <span className="text-xs font-mono text-[#0F172A]">
+                  <div className="py-3.5 px-4 rounded-xl bg-[#F8FAFC] border border-[#E2E8F0] flex items-center justify-between">
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-2.5 h-2.5 rounded-full bg-emerald-500 shrink-0" />
+                      <span className="text-sm font-mono text-[#0F172A]">
                         {connectedAddress ? `${connectedAddress.slice(0, 10)}...${connectedAddress.slice(-8)}` : "Connected"}
                       </span>
                     </div>
@@ -281,16 +281,16 @@ export default function BeneficiaryPage() {
 
                 {/* Inline Status */}
                 {isConnected && (
-                  <div className="pt-0.5 flex items-center justify-between text-xs">
+                  <div className="pt-1 flex items-center justify-between text-xs">
                     {proofResult && proofResult.valid ? (
-                      <div className="flex items-center gap-1.5 text-emerald-600 font-medium text-[11px]">
-                        <CheckCircle2 className="w-3.5 h-3.5" />
+                      <div className="flex items-center gap-1.5 text-emerald-600 font-medium text-xs">
+                        <CheckCircle2 className="w-4 h-4" />
                         <span>Eligible for Payout</span>
                       </div>
                     ) : (
-                      <div className="flex items-center justify-between w-full text-[11px]">
-                        <span className="text-amber-600 flex items-center gap-1">
-                          <XCircle className="w-3.5 h-3.5" /> Not eligible for payout
+                      <div className="flex items-center justify-between w-full text-xs">
+                        <span className="text-amber-600 flex items-center gap-1.5">
+                          <XCircle className="w-4 h-4" /> Not eligible for payout
                         </span>
                       </div>
                     )}
@@ -306,21 +306,21 @@ export default function BeneficiaryPage() {
                   className="w-full flex items-center justify-between py-1 text-xs text-[#64748B] hover:text-[#0F172A] transition-colors"
                 >
                   <div className="flex items-center gap-1.5">
-                    <Lock className="w-3 h-3 text-[#2563EB]" />
+                    <Lock className="w-3.5 h-3.5 text-[#2563EB]" />
                     <span>Technical Proof Details</span>
                   </div>
-                  {showTechnicalDetails ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+                  {showTechnicalDetails ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
                 </button>
 
                 {showTechnicalDetails && proofResult && (
-                  <div className="mt-2 p-3 rounded-lg bg-[#F8FAFC] border border-[#E2E8F0] space-y-1.5 text-[11px] font-mono text-[#475569]">
+                  <div className="mt-2 p-3.5 rounded-xl bg-[#F8FAFC] border border-[#E2E8F0] space-y-2 text-xs font-mono text-[#475569]">
                     <div className="flex justify-between">
                       <span className="text-[#94A3B8]">Merkle Root:</span>
-                      <span className="text-[#0F172A] truncate max-w-[200px]">{treeData.root}</span>
+                      <span className="text-[#0F172A] truncate max-w-[240px]">{treeData.root}</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-[#94A3B8]">Leaf Hash:</span>
-                      <span className="text-[#0F172A] truncate max-w-[200px]">{proofResult.leaf}</span>
+                      <span className="text-[#0F172A] truncate max-w-[240px]">{proofResult.leaf}</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-[#94A3B8]">Network:</span>
@@ -332,8 +332,8 @@ export default function BeneficiaryPage() {
 
               {/* Status Notice if loading */}
               {isSubmitting && statusMessage && (
-                <div className="p-2.5 rounded-lg bg-blue-50 border border-blue-100 text-xs text-[#2563EB] flex items-center gap-2">
-                  <Loader2 className="w-3.5 h-3.5 animate-spin shrink-0" />
+                <div className="p-3 rounded-xl bg-blue-50 border border-blue-100 text-xs text-[#2563EB] flex items-center gap-2">
+                  <Loader2 className="w-4 h-4 animate-spin shrink-0" />
                   <span>{statusMessage}</span>
                 </div>
               )}
@@ -343,7 +343,7 @@ export default function BeneficiaryPage() {
                 <button
                   type="button"
                   onClick={connectWallet}
-                  className="w-full py-3 px-4 rounded-xl bg-[#2563EB] hover:bg-[#1D4ED8] active:bg-[#1E40AF] text-white text-sm font-medium flex items-center justify-center gap-2 shadow-sm transition-all cursor-pointer mt-2"
+                  className="w-full py-4 px-6 rounded-xl bg-[#2563EB] hover:bg-[#1D4ED8] active:bg-[#1E40AF] text-white text-base font-semibold flex items-center justify-center gap-2 shadow-sm transition-all cursor-pointer mt-3"
                 >
                   <Wallet className="w-4 h-4" />
                   <span>Connect Wallet to Claim</span>
@@ -352,7 +352,7 @@ export default function BeneficiaryPage() {
                 <button
                   type="submit"
                   disabled={isSubmitting || !proofResult?.valid}
-                  className="w-full py-3 px-4 rounded-xl bg-[#2563EB] hover:bg-[#1D4ED8] active:bg-[#1E40AF] disabled:bg-[#CBD5E1] text-white text-sm font-medium flex items-center justify-center gap-2 shadow-sm transition-all cursor-pointer disabled:cursor-not-allowed mt-2"
+                  className="w-full py-4 px-6 rounded-xl bg-[#2563EB] hover:bg-[#1D4ED8] active:bg-[#1E40AF] disabled:bg-[#CBD5E1] text-white text-base font-semibold flex items-center justify-center gap-2 shadow-sm transition-all cursor-pointer disabled:cursor-not-allowed mt-3"
                 >
                   {isSubmitting ? (
                     <>
@@ -367,43 +367,39 @@ export default function BeneficiaryPage() {
             </form>
           ) : (
             /* Confirmed Receipt View */
-            <div className="p-6 sm:p-7 text-center space-y-5">
-              <div className="w-12 h-12 rounded-full bg-emerald-50 border border-emerald-200 flex items-center justify-center text-emerald-600 mx-auto">
-                <CheckCircle2 className="w-6 h-6" />
+            <div className="p-8 sm:p-10 text-center space-y-6">
+              <div className="w-14 h-14 rounded-full bg-emerald-50 border border-emerald-200 flex items-center justify-center text-emerald-600 mx-auto">
+                <CheckCircle2 className="w-7 h-7" />
               </div>
 
               <div className="space-y-1">
-                <h2 className="text-lg font-semibold text-[#0F172A]">
+                <h2 className="text-xl font-semibold text-[#0F172A]">
                   Aid Claim Confirmed
                 </h2>
-                <p className="text-xs text-[#64748B]">
+                <p className="text-sm text-[#64748B]">
                   <strong>{activeCrisis.amount}.00 {activeCrisis.currency}</strong> transferred to recipient address.
                 </p>
               </div>
 
-              <div className="p-3.5 rounded-xl bg-[#F8FAFC] border border-[#E2E8F0] text-xs font-mono text-left space-y-2">
+              <div className="p-4 rounded-xl bg-[#F8FAFC] border border-[#E2E8F0] text-xs font-mono text-left space-y-2.5">
                 <div className="flex items-center justify-between">
                   <span className="text-[#94A3B8]">Recipient:</span>
-                  <span className="text-[#0F172A]">{recipientAddress.slice(0, 8)}...{recipientAddress.slice(-6)}</span>
+                  <span className="text-[#0F172A]">{recipientAddress.slice(0, 10)}...{recipientAddress.slice(-8)}</span>
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-[#94A3B8]">Amount:</span>
                   <span className="text-[#0F172A] font-semibold">{activeCrisis.amount}.00 {activeCrisis.currency}</span>
                 </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-[#94A3B8]">Gas Fee:</span>
-                  <span className="text-emerald-600 font-medium">$0.00 (Sponsored)</span>
-                </div>
-                <div className="flex items-center justify-between pt-1 border-t border-[#E2E8F0]">
+                <div className="flex items-center justify-between pt-2 border-t border-[#E2E8F0]">
                   <span className="text-[#94A3B8]">Tx Hash:</span>
-                  <div className="flex items-center gap-1.5">
-                    <span className="text-[#0F172A]">{claimTxHash.slice(0, 10)}...</span>
+                  <div className="flex items-center gap-2">
+                    <span className="text-[#0F172A]">{claimTxHash.slice(0, 12)}...</span>
                     <button
                       onClick={() => handleCopy(claimTxHash)}
-                      className="p-0.5 hover:text-[#2563EB]"
+                      className="p-1 hover:text-[#2563EB]"
                       title="Copy Hash"
                     >
-                      {copied ? <Check className="w-3 h-3 text-emerald-600" /> : <Copy className="w-3 h-3 text-[#64748B]" />}
+                      {copied ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5 text-[#64748B]" />}
                     </button>
                   </div>
                 </div>
@@ -412,9 +408,9 @@ export default function BeneficiaryPage() {
               <button
                 type="button"
                 onClick={resetForm}
-                className="w-full py-2.5 px-4 rounded-xl bg-[#F8FAFC] hover:bg-[#F1F5F9] text-[#0F172A] text-xs font-medium border border-[#E2E8F0] transition-colors flex items-center justify-center gap-2"
+                className="w-full py-3 px-4 rounded-xl bg-[#F8FAFC] hover:bg-[#F1F5F9] text-[#0F172A] text-sm font-medium border border-[#E2E8F0] transition-colors flex items-center justify-center gap-2"
               >
-                <RefreshCw className="w-3 h-3" />
+                <RefreshCw className="w-4 h-4" />
                 <span>Claim for Another Address</span>
               </button>
             </div>
