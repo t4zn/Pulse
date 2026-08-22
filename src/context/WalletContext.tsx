@@ -201,19 +201,44 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
 
     try {
       let accounts: string[] = [];
+
+      // 1. Check if accounts are already authorized
       try {
-        accounts = await eth.request({ method: "eth_requestAccounts" });
-      } catch (reqErr: any) {
-        if (reqErr.code === -32002) {
-          // Request already pending, fetch available accounts
-          accounts = await eth.request({ method: "eth_accounts" });
-        } else {
-          throw reqErr;
+        const existingAccounts = await eth.request({ method: "eth_accounts" });
+        if (existingAccounts && existingAccounts.length > 0) {
+          accounts = existingAccounts;
+        }
+      } catch (e) {}
+
+      // 2. If not already authorized, request accounts
+      if (!accounts || accounts.length === 0) {
+        try {
+          accounts = await eth.request({ method: "eth_requestAccounts" });
+        } catch (reqErr: any) {
+          if (reqErr?.code === -32002 || reqErr?.message?.includes("already pending")) {
+            console.warn("MetaMask request already pending. Checking eth_accounts...");
+            try {
+              accounts = await eth.request({ method: "eth_accounts" });
+            } catch (e) {}
+            if (!accounts || accounts.length === 0) {
+              setError("MetaMask approval is already waiting in your extension. Please open MetaMask to approve.");
+              setIsConnecting(false);
+              return null;
+            }
+          } else if (reqErr?.code === 4001) {
+            setError("Connection request cancelled.");
+            setIsConnecting(false);
+            return null;
+          } else {
+            throw reqErr;
+          }
         }
       }
 
       if (!accounts || accounts.length === 0) {
-        accounts = await eth.request({ method: "eth_accounts" });
+        try {
+          accounts = await eth.request({ method: "eth_accounts" });
+        } catch (e) {}
       }
       
       if (accounts && accounts.length > 0) {
@@ -235,7 +260,13 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
       return null;
     } catch (err: any) {
       console.error("MetaMask connection failed:", err);
-      setError(err?.message || "Failed to connect MetaMask.");
+      if (err?.code === -32002 || err?.message?.includes("already pending")) {
+        setError("MetaMask request is already pending. Please click the MetaMask extension icon to approve.");
+      } else if (err?.code === 4001) {
+        setError("Connection request cancelled.");
+      } else {
+        setError(err?.message || "Failed to connect MetaMask.");
+      }
       setIsConnecting(false);
       return null;
     }
@@ -260,11 +291,22 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
       if (typeof window !== "undefined") {
         localStorage.removeItem(DISCONNECT_STORAGE_KEY);
       }
-      // EIP-2255: Request permissions pops MetaMask account switcher dialog
-      await eth.request({
-        method: "wallet_requestPermissions",
-        params: [{ eth_accounts: {} }],
-      });
+      try {
+        // EIP-2255: Request permissions pops MetaMask account switcher dialog
+        await eth.request({
+          method: "wallet_requestPermissions",
+          params: [{ eth_accounts: {} }],
+        });
+      } catch (permErr: any) {
+        if (permErr?.code === -32002 || permErr?.message?.includes("already pending")) {
+          console.warn("Permission request already pending in MetaMask extension.");
+        } else if (permErr?.code === 4001) {
+          console.warn("User cancelled account switch.");
+        } else {
+          console.warn("wallet_requestPermissions fallback:", permErr);
+        }
+      }
+      
       const accounts = await eth.request({ method: "eth_accounts" });
       if (accounts && accounts.length > 0) {
         const newAddr = accounts[0];
@@ -273,7 +315,7 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
         return newAddr;
       }
     } catch (err: any) {
-      console.warn("Account switch request cancelled or failed:", err);
+      console.warn("Account switch fallback:", err);
       try {
         const accounts = await eth.request({ method: "eth_accounts" });
         if (accounts && accounts.length > 0) {
