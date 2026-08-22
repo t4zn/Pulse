@@ -21,7 +21,6 @@ import {
   GitBranch,
   Sparkles,
   Download,
-  Cpu,
 } from "lucide-react";
 import {
   buildMerkleTree,
@@ -34,13 +33,7 @@ import {
   type MerkleTreeData,
   type MerkleProofResult,
 } from "@/lib/merkle";
-import {
-  saveBeneficiaryClaim,
-  saveCommittedRoot,
-  saveVoucherBatch,
-} from "@/lib/auditState";
 
-// ─── Demo Addresses (Pre-seeded for demo) ────────────────────────────────────
 const DEMO_BENEFICIARIES = [
   "0x70997970C51812dc3A010C7d01b50e0d17dc79C8",
   "0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC",
@@ -54,38 +47,32 @@ const DEMO_BENEFICIARIES = [
 
 const DEMO_CRISIS_ID = "turkey-earthquake-2026";
 
-// ─── Tabs ─────────────────────────────────────────────────────────────────────
 type TabId = "claim" | "ngo" | "vouchers";
 
 interface Tab {
   id: TabId;
   label: string;
   icon: React.ReactNode;
-  description: string;
 }
 
 const TABS: Tab[] = [
   {
     id: "claim",
-    label: "Victim Claim",
-    icon: <ShieldCheck className="w-3.5 h-3.5" />,
-    description: "Claim aid with zero gas fees",
+    label: "Victim Aid Claim",
+    icon: <ShieldCheck className="w-4 h-4" />,
   },
   {
     id: "ngo",
-    label: "NGO Console",
-    icon: <FileText className="w-3.5 h-3.5" />,
-    description: "Build & commit Merkle trees",
+    label: "NGO Registry Console",
+    icon: <FileText className="w-4 h-4" />,
   },
   {
     id: "vouchers",
-    label: "QR Vouchers",
-    icon: <QrCode className="w-3.5 h-3.5" />,
-    description: "Offline voucher generator",
+    label: "Offline QR Vouchers",
+    icon: <QrCode className="w-4 h-4" />,
   },
 ];
 
-// ─── Utility ──────────────────────────────────────────────────────────────────
 function truncateHash(hash: string, start = 10, end = 6): string {
   if (hash.length <= start + end + 2) return hash;
   return `${hash.slice(0, start)}...${hash.slice(-end)}`;
@@ -95,18 +82,17 @@ function copyToClipboard(text: string) {
   navigator.clipboard.writeText(text);
 }
 
-// ─── Component ────────────────────────────────────────────────────────────────
 export default function BeneficiaryPage() {
   const [activeTab, setActiveTab] = useState<TabId>("claim");
 
-  // ── Claim State ──
+  // Claim State
   const [claimAddress, setClaimAddress] = useState(DEMO_BENEFICIARIES[0]);
   const [claimStep, setClaimStep] = useState<"input" | "verifying" | "signing" | "confirmed">("input");
   const [proofResult, setProofResult] = useState<MerkleProofResult | null>(null);
   const [showProofTree, setShowProofTree] = useState(false);
   const [claimTxHash, setClaimTxHash] = useState("");
 
-  // ── NGO State ──
+  // NGO State
   const [ngoAddresses, setNgoAddresses] = useState<string[]>([]);
   const [ngoTree, setNgoTree] = useState<MerkleTreeData | null>(null);
   const [ngoStep, setNgoStep] = useState<"upload" | "tree" | "committed">("upload");
@@ -114,15 +100,11 @@ export default function BeneficiaryPage() {
   const [ngoIpfsCid, setNgoIpfsCid] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // ── Voucher State ──
+  // Voucher State
   const [voucherGenerated, setVoucherGenerated] = useState(false);
 
-  // Build the demo tree for claim verification
   const demoTree = useMemo(() => buildMerkleTree(DEMO_BENEFICIARIES), []);
 
-  // ────────────────────────────────────────────────────────────────────────────
-  // CLAIM FLOW
-  // ────────────────────────────────────────────────────────────────────────────
   const handleVerifyClaim = useCallback(() => {
     setClaimStep("verifying");
 
@@ -131,7 +113,6 @@ export default function BeneficiaryPage() {
       setProofResult(proof);
 
       if (proof.valid) {
-        // Verify independently
         const verified = verifyProof(proof.proof, demoTree.root, proof.leaf);
         if (verified) {
           setClaimStep("signing");
@@ -141,33 +122,20 @@ export default function BeneficiaryPage() {
       } else {
         setClaimStep("input");
       }
-    }, 1200);
+    }, 1000);
   }, [claimAddress, demoTree]);
 
   const handleSignAndClaim = useCallback(() => {
     setClaimStep("verifying");
 
-    // Simulate EIP-712 signing + relayer broadcast
     setTimeout(() => {
       const fakeTxHash = "0x" + Array.from({ length: 64 }, () =>
         Math.floor(Math.random() * 16).toString(16)
       ).join("");
-      const leafHash = proofResult?.leaf || hashAddress(claimAddress);
       setClaimTxHash(fakeTxHash);
       setClaimStep("confirmed");
-
-      // Save claim to shared state store for immediate Live Audit Ledger synchronization
-      saveBeneficiaryClaim({
-        txHash: fakeTxHash,
-        beneficiaryAddress: claimAddress,
-        merkleLeaf: leafHash,
-        amountUSD: 150,
-        category: "Medical Care",
-        vaultName: "Turkey 7.8M Earthquake Primary Escrow",
-        ipfsReceipt: "QmX8a77192038471928374918293847192837491823"
-      });
-    }, 2000);
-  }, [claimAddress, proofResult]);
+    }, 1500);
+  }, []);
 
   const resetClaim = useCallback(() => {
     setClaimStep("input");
@@ -176,9 +144,6 @@ export default function BeneficiaryPage() {
     setShowProofTree(false);
   }, []);
 
-  // ────────────────────────────────────────────────────────────────────────────
-  // NGO FLOW
-  // ────────────────────────────────────────────────────────────────────────────
   const handleCSVUpload = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -207,7 +172,6 @@ export default function BeneficiaryPage() {
   const handleCommitRoot = useCallback(() => {
     if (!ngoTree) return;
 
-    // Simulate IPFS upload + on-chain commit
     setTimeout(() => {
       const fakeCid = "Qm" + Array.from({ length: 44 }, () =>
         "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789"[
@@ -220,17 +184,7 @@ export default function BeneficiaryPage() {
       setNgoIpfsCid(fakeCid);
       setNgoCommitTxHash(fakeTx);
       setNgoStep("committed");
-
-      // Save committed root to shared state store for immediate Live Audit Ledger verifier sync
-      saveCommittedRoot({
-        root: ngoTree.root,
-        txHash: fakeTx,
-        ipfsCid: fakeCid,
-        addressCount: ngoTree.addressCount,
-        crisisId: DEMO_CRISIS_ID,
-        vaultName: "Turkey 7.8M Earthquake Primary Escrow"
-      });
-    }, 1500);
+    }, 1200);
   }, [ngoTree]);
 
   const resetNgo = useCallback(() => {
@@ -241,9 +195,6 @@ export default function BeneficiaryPage() {
     setNgoIpfsCid("");
   }, []);
 
-  // ────────────────────────────────────────────────────────────────────────────
-  // VOUCHER GENERATION
-  // ────────────────────────────────────────────────────────────────────────────
   const voucherData = useMemo(() => {
     return DEMO_BENEFICIARIES.map((addr) => ({
       address: addr,
@@ -252,108 +203,80 @@ export default function BeneficiaryPage() {
     }));
   }, []);
 
-  const handleGenerateVouchers = useCallback(() => {
-    setVoucherGenerated(true);
-    saveVoucherBatch({
-      crisisId: DEMO_CRISIS_ID,
-      count: DEMO_BENEFICIARIES.length,
-      root: demoTree.root,
-      allocation: "150 USDC"
-    });
-  }, [demoTree.root]);
-
-  // ────────────────────────────────────────────────────────────────────────────
-  // EIP-712 Display Data
-  // ────────────────────────────────────────────────────────────────────────────
   const eip712Data = useMemo(() => {
     return buildEIP712ClaimData(
       1,
-      "150000000", // 150 USDC (6 decimals)
+      "150000000",
       claimAddress,
       0,
       Math.floor(Date.now() / 1000) + 3600
     );
   }, [claimAddress]);
 
-  // ────────────────────────────────────────────────────────────────────────────
-  // RENDER
-  // ────────────────────────────────────────────────────────────────────────────
   return (
-    <div className="w-full bg-canvas text-ink min-h-screen py-8 px-4 md:px-8">
+    <div className="w-full bg-white text-ink min-h-screen py-8 px-4 md:px-8">
       <div className="max-w-[1280px] mx-auto">
         {/* Back Link */}
         <Link
           href="/"
-          className="inline-flex items-center gap-1.5 text-xs font-mono text-ink-subtle hover:text-ink mb-6 transition-colors"
+          className="inline-flex items-center gap-1.5 text-xs font-mono text-body hover:text-ink mb-6 transition-colors"
         >
           <ArrowLeft className="w-3.5 h-3.5" /> Back to Command Center
         </Link>
 
         {/* Page Header */}
-        <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-6">
-          <div className="flex flex-col items-start gap-2">
-            <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-pill bg-surface-1 border border-hairline text-[10px] font-mono text-semantic-success">
-              <Lock className="w-3 h-3" /> Zero-Knowledge Identity Protection Active
-            </div>
-            <h1 className="text-2xl md:text-3xl font-semibold tracking-tight text-ink">
-              Beneficiary Claim Portal
-            </h1>
-            <p className="text-xs text-ink-subtle max-w-2xl leading-relaxed">
-              Victims claim aid with <strong className="text-ink">$0 gas fees</strong> via EIP-712 meta-transactions.
-              Identities stay protected — only 32-byte Keccak256 Merkle roots go on-chain.
-            </p>
+        <div className="flex flex-col items-start gap-2 mb-8">
+          <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-surface-soft border border-hairline text-xs font-mono text-semantic-up">
+            <Lock className="w-3.5 h-3.5" /> Zero-Knowledge Identity Protection Active
           </div>
-
-          <Link
-            href="/audit"
-            className="px-3.5 py-2 rounded-lg bg-surface-1 hover:bg-surface-2 text-ink text-xs font-mono border border-hairline hover:border-hairline-strong transition-all flex items-center gap-2 shrink-0 self-start md:self-auto"
-          >
-            <ShieldCheck className="w-4 h-4 text-semantic-success" />
-            <span>View Public Audit Ledger →</span>
-          </Link>
+          <h1 className="text-2xl md:text-4xl font-normal tracking-tight text-ink">
+            Beneficiary Claim Portal
+          </h1>
+          <p className="text-sm text-body max-w-2xl leading-relaxed">
+            Victims claim aid with <strong className="text-ink">$0 gas fees</strong> via EIP-712 meta-transactions.
+            Only 32-byte Keccak256 Merkle roots are committed on-chain.
+          </p>
         </div>
 
-        {/* Tab Navigation */}
-        <div className="flex items-center gap-1 p-1 bg-surface-1 rounded-lg border border-hairline mb-6 w-fit">
+        {/* Tab Navigation - Coinbase Pill Tabs */}
+        <div className="flex items-center gap-1.5 p-1 bg-surface-soft rounded-full border border-hairline mb-8 w-fit">
           {TABS.map((tab) => (
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
+              className={`flex items-center gap-2 px-5 py-2 rounded-full text-xs font-semibold transition-colors ${
                 activeTab === tab.id
-                  ? "bg-surface-3 text-ink border border-hairline-strong"
-                  : "text-ink-subtle hover:text-ink border border-transparent"
+                  ? "bg-white text-ink shadow-sm"
+                  : "text-body hover:text-ink"
               }`}
             >
               {tab.icon}
-              <span className="hidden sm:inline">{tab.label}</span>
+              <span>{tab.label}</span>
             </button>
           ))}
         </div>
 
-        {/* ══════════════════════════════════════════════════════════════════════
-            TAB 1: VICTIM CLAIM TERMINAL
-            ══════════════════════════════════════════════════════════════════════ */}
+        {/* TAB 1: VICTIM CLAIM TERMINAL */}
         {activeTab === "claim" && (
-          <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
+          <div className="grid grid-cols-1 lg:grid-cols-5 gap-8">
             {/* Left: Claim Form */}
             <div className="lg:col-span-2 space-y-4">
-              <div className="p-5 rounded-lg bg-surface-1 border border-hairline">
-                <div className="flex items-center gap-2 mb-4 pb-3 border-b border-hairline">
-                  <div className="w-6 h-6 rounded bg-canvas border border-hairline flex items-center justify-center text-semantic-success">
-                    <ShieldCheck className="w-3.5 h-3.5" />
+              <div className="p-6 rounded-2xl bg-white border border-hairline shadow-card">
+                <div className="flex items-center gap-3 mb-5 pb-4 border-b border-hairline">
+                  <div className="w-8 h-8 rounded-full bg-emerald-50 text-semantic-up flex items-center justify-center">
+                    <ShieldCheck className="w-4 h-4" />
                   </div>
                   <div>
-                    <h2 className="text-sm font-semibold text-ink">Gasless Aid Claim</h2>
-                    <span className="text-[10px] font-mono text-ink-tertiary">EIP-712 Meta-Transaction</span>
+                    <h2 className="text-base font-semibold text-ink">Gasless Aid Claim</h2>
+                    <span className="text-xs text-body">EIP-712 Meta-Transaction</span>
                   </div>
                 </div>
 
                 {/* Step 1: Address Input */}
                 {(claimStep === "input" || claimStep === "verifying") && (
-                  <div className="space-y-3">
+                  <div className="space-y-4">
                     <div className="space-y-1.5">
-                      <label className="text-[11px] font-mono text-ink-subtle uppercase tracking-wider">
+                      <label className="text-xs font-semibold text-body uppercase tracking-wider">
                         Recipient Wallet Address
                       </label>
                       <input
@@ -361,61 +284,59 @@ export default function BeneficiaryPage() {
                         value={claimAddress}
                         onChange={(e) => setClaimAddress(e.target.value)}
                         placeholder="0x..."
-                        className="w-full bg-canvas border border-hairline focus:border-primary text-ink px-3 py-2 rounded-md text-xs font-mono focus:outline-none transition-colors"
+                        className="w-full bg-white border border-hairline focus:border-primary text-ink px-4 py-2.5 rounded-xl text-xs font-mono focus:outline-none transition-colors"
                       />
                     </div>
 
                     <div className="space-y-1.5">
-                      <label className="text-[11px] font-mono text-ink-subtle uppercase tracking-wider">
+                      <label className="text-xs font-semibold text-body uppercase tracking-wider">
                         Crisis Registry
                       </label>
-                      <div className="w-full bg-canvas border border-hairline text-ink-muted px-3 py-2 rounded-md text-xs font-mono">
+                      <div className="w-full bg-surface-soft border border-hairline text-ink px-4 py-2.5 rounded-xl text-xs font-mono">
                         Turkey-Syria Earthquake 2026 (ID: 1)
                       </div>
                     </div>
 
-                    <div className="p-3 rounded bg-canvas border border-hairline text-[11px] font-mono space-y-1.5">
+                    <div className="p-4 rounded-xl bg-surface-soft border border-hairline text-xs font-mono space-y-2">
                       <div className="flex justify-between">
-                        <span className="text-ink-tertiary">Allocation:</span>
-                        <span className="text-ink font-medium">150.00 USDC</span>
+                        <span className="text-body">Allocation:</span>
+                        <span className="text-ink font-semibold">150.00 USDC</span>
                       </div>
                       <div className="flex justify-between">
-                        <span className="text-ink-tertiary">Gas Cost to Victim:</span>
-                        <span className="text-semantic-success font-medium">$0.00</span>
+                        <span className="text-body">Gas Cost to Victim:</span>
+                        <span className="text-semantic-up font-semibold">$0.00</span>
                       </div>
                       <div className="flex justify-between">
-                        <span className="text-ink-tertiary">Gas Sponsor:</span>
-                        <span className="text-primary font-medium">Pulse Relayer</span>
+                        <span className="text-body">Gas Sponsor:</span>
+                        <span className="text-primary font-semibold">Pulse Relayer</span>
                       </div>
                     </div>
 
                     <button
                       onClick={handleVerifyClaim}
                       disabled={claimStep === "verifying" || !claimAddress}
-                      className="w-full py-2 px-4 rounded-md bg-primary hover:bg-primary-hover text-white text-xs font-medium transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
+                      className="w-full py-3 px-4 rounded-full bg-primary hover:bg-primary-hover active:bg-primary-active text-white text-sm font-semibold transition-colors flex items-center justify-center gap-2 disabled:opacity-50 shadow-sm"
                     >
                       {claimStep === "verifying" ? (
                         <>
-                          <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                          <Loader2 className="w-4 h-4 animate-spin" />
                           <span>Verifying Merkle Proof...</span>
                         </>
                       ) : (
                         <>
-                          <ShieldCheck className="w-3.5 h-3.5" />
+                          <ShieldCheck className="w-4 h-4" />
                           <span>Verify Eligibility</span>
                         </>
                       )}
                     </button>
 
-                    {/* Failed verification */}
                     {proofResult && !proofResult.valid && claimStep === "input" && (
-                      <div className="p-3 rounded bg-surface-2 border border-red-500/20 text-xs flex items-start gap-2">
-                        <XCircle className="w-4 h-4 text-red-400 shrink-0 mt-0.5" />
+                      <div className="p-4 rounded-xl bg-red-50 border border-red-200 text-xs flex items-start gap-2.5">
+                        <XCircle className="w-4 h-4 text-semantic-down shrink-0 mt-0.5" />
                         <div>
-                          <div className="text-red-400 font-medium mb-0.5">Address Not Found in Registry</div>
-                          <div className="text-ink-tertiary font-mono text-[10px]">
-                            This address is not in the Merkle tree for the selected crisis.
-                            Contact your local relief coordinator.
+                          <div className="text-semantic-down font-semibold mb-0.5">Address Not Found in Registry</div>
+                          <div className="text-body text-xs">
+                            This address is not in the Merkle tree for this crisis.
                           </div>
                         </div>
                       </div>
@@ -425,12 +346,12 @@ export default function BeneficiaryPage() {
 
                 {/* Step 2: EIP-712 Signing */}
                 {claimStep === "signing" && proofResult && (
-                  <div className="space-y-3">
-                    <div className="p-3 rounded bg-canvas border border-semantic-success/20 text-xs flex items-start gap-2">
-                      <CheckCircle2 className="w-4 h-4 text-semantic-success shrink-0 mt-0.5" />
+                  <div className="space-y-4">
+                    <div className="p-3.5 rounded-xl bg-emerald-50 border border-emerald-200 text-xs flex items-start gap-2.5">
+                      <CheckCircle2 className="w-4 h-4 text-semantic-up shrink-0 mt-0.5" />
                       <div>
-                        <div className="text-semantic-success font-medium mb-0.5">Merkle Proof Verified</div>
-                        <div className="text-ink-tertiary font-mono text-[10px]">
+                        <div className="text-semantic-up font-semibold mb-0.5">Merkle Proof Verified</div>
+                        <div className="text-body font-mono text-xs">
                           Proof path length: {proofResult.proof.length} nodes · Leaf index: {proofResult.index}
                         </div>
                       </div>
@@ -438,33 +359,30 @@ export default function BeneficiaryPage() {
 
                     {/* EIP-712 Typed Data Preview */}
                     <div className="space-y-1.5">
-                      <div className="text-[11px] font-mono text-ink-subtle uppercase tracking-wider">
+                      <div className="text-xs font-semibold text-body uppercase tracking-wider">
                         EIP-712 Typed Data Signature
                       </div>
-                      <div className="p-3 rounded bg-canvas border border-hairline text-[10px] font-mono text-ink-subtle space-y-1 overflow-x-auto">
-                        <div className="text-ink-tertiary">// Domain</div>
+                      <div className="p-3.5 rounded-xl bg-surface-soft border border-hairline text-xs font-mono text-body space-y-1 overflow-x-auto">
+                        <div className="text-muted">// Domain</div>
                         <div>name: <span className="text-primary">&quot;{eip712Data.domain.name}&quot;</span></div>
-                        <div>chainId: <span className="text-ink">{eip712Data.domain.chainId}</span> <span className="text-ink-tertiary">(Polygon Amoy)</span></div>
-                        <div>contract: <span className="text-ink">{truncateHash(eip712Data.domain.verifyingContract, 8, 6)}</span></div>
-                        <div className="text-ink-tertiary mt-2">// ClaimAid</div>
+                        <div>chainId: <span className="text-ink">{eip712Data.domain.chainId}</span> <span className="text-muted">(Polygon Amoy)</span></div>
+                        <div className="text-muted mt-2">// ClaimAid</div>
                         <div>crisisId: <span className="text-ink">{eip712Data.value.crisisId}</span></div>
-                        <div>amount: <span className="text-semantic-success">{eip712Data.value.amount}</span> <span className="text-ink-tertiary">(150 USDC)</span></div>
+                        <div>amount: <span className="text-semantic-up">{eip712Data.value.amount}</span> <span className="text-muted">(150 USDC)</span></div>
                         <div>recipient: <span className="text-ink">{truncateHash(eip712Data.value.recipient, 8, 6)}</span></div>
-                        <div>nonce: <span className="text-ink">{eip712Data.value.nonce}</span></div>
-                        <div>deadline: <span className="text-ink">{eip712Data.value.deadline}</span></div>
                       </div>
                     </div>
 
-                    <div className="flex gap-2">
+                    <div className="flex gap-2 pt-2">
                       <button
                         onClick={resetClaim}
-                        className="px-3 py-2 rounded-md bg-surface-2 hover:bg-surface-3 text-ink-subtle text-xs font-mono border border-hairline transition-colors"
+                        className="px-4 py-2.5 rounded-full bg-surface-soft hover:bg-surface-strong text-body text-xs font-semibold transition-colors"
                       >
                         Cancel
                       </button>
                       <button
                         onClick={handleSignAndClaim}
-                        className="flex-1 py-2 px-4 rounded-md bg-primary hover:bg-primary-hover text-white text-xs font-medium transition-colors flex items-center justify-center gap-2"
+                        className="flex-1 py-2.5 px-4 rounded-full bg-primary hover:bg-primary-hover active:bg-primary-active text-white text-xs font-semibold transition-colors flex items-center justify-center gap-2 shadow-sm"
                       >
                         <Sparkles className="w-3.5 h-3.5" />
                         Sign & Claim (0 Gas)
@@ -475,123 +393,109 @@ export default function BeneficiaryPage() {
 
                 {/* Step 3: Confirmed */}
                 {claimStep === "confirmed" && (
-                  <div className="space-y-3">
-                    <div className="p-4 rounded bg-canvas border border-semantic-success/20 text-center space-y-2">
-                      <CheckCircle2 className="w-8 h-8 text-semantic-success mx-auto" />
-                      <div className="text-sm font-semibold text-ink">Aid Claimed Successfully</div>
-                      <div className="text-[11px] text-ink-subtle">
+                  <div className="space-y-4">
+                    <div className="p-5 rounded-xl bg-emerald-50 border border-emerald-200 text-center space-y-2">
+                      <CheckCircle2 className="w-10 h-10 text-semantic-up mx-auto" />
+                      <div className="text-base font-semibold text-ink">Aid Claimed Successfully</div>
+                      <div className="text-xs text-body">
                         150.00 USDC transferred to your wallet. Gas fee: $0.00
                       </div>
                     </div>
 
-                    <div className="space-y-2 text-[11px] font-mono">
-                      <div className="p-2.5 rounded bg-surface-2 border border-hairline flex items-center justify-between">
-                        <span className="text-ink-tertiary">Tx Hash:</span>
-                        <span className="text-primary flex items-center gap-1">
+                    <div className="space-y-2 text-xs font-mono">
+                      <div className="p-3 rounded-xl bg-surface-soft border border-hairline flex items-center justify-between">
+                        <span className="text-body">Tx Hash:</span>
+                        <span className="text-primary font-semibold flex items-center gap-1">
                           {truncateHash(claimTxHash)}
                           <button onClick={() => copyToClipboard(claimTxHash)}>
-                            <Copy className="w-3 h-3 text-ink-tertiary hover:text-ink" />
+                            <Copy className="w-3 h-3 text-muted hover:text-ink" />
                           </button>
                         </span>
                       </div>
-                      <div className="p-2.5 rounded bg-surface-2 border border-hairline flex items-center justify-between">
-                        <span className="text-ink-tertiary">Network:</span>
-                        <span className="text-ink">Polygon Amoy (Testnet)</span>
+                      <div className="p-3 rounded-xl bg-surface-soft border border-hairline flex items-center justify-between">
+                        <span className="text-body">Network:</span>
+                        <span className="text-ink">Polygon Amoy</span>
                       </div>
-                      <div className="p-2.5 rounded bg-surface-2 border border-hairline flex items-center justify-between">
-                        <span className="text-ink-tertiary">Gas Paid By:</span>
-                        <span className="text-primary">Pulse Protocol Relayer</span>
-                      </div>
-                      <div className="p-2.5 rounded bg-surface-2 border border-hairline flex items-center justify-between">
-                        <span className="text-ink-tertiary">IPFS Receipt:</span>
-                        <span className="text-ink">QmX8a...92b1</span>
+                      <div className="p-3 rounded-xl bg-surface-soft border border-hairline flex items-center justify-between">
+                        <span className="text-body">Gas Paid By:</span>
+                        <span className="text-primary font-semibold">Pulse Protocol Relayer</span>
                       </div>
                     </div>
 
-                    <div className="flex flex-col gap-2">
-                      <Link
-                        href={`/audit?search=${claimTxHash}&tab=ledger`}
-                        className="w-full py-2.5 px-4 rounded-md bg-primary hover:bg-primary-hover text-white text-xs font-mono font-medium transition-colors flex items-center justify-center gap-2 shadow-sm text-center"
-                      >
-                        <ShieldCheck className="w-4 h-4" />
-                        <span>Inspect in Live Audit Ledger →</span>
-                      </Link>
-
-                      <button
-                        onClick={resetClaim}
-                        className="w-full py-2 px-4 rounded-md bg-surface-2 hover:bg-surface-3 text-ink text-xs font-mono border border-hairline transition-colors"
-                      >
-                        Claim Another Aid Package
-                      </button>
-                    </div>
+                    <button
+                      onClick={resetClaim}
+                      className="w-full py-2.5 px-4 rounded-full bg-surface-soft hover:bg-surface-strong text-ink text-xs font-semibold transition-colors"
+                    >
+                      New Claim
+                    </button>
                   </div>
                 )}
               </div>
             </div>
 
             {/* Right: Merkle Proof Inspector */}
-            <div className="lg:col-span-3 space-y-4">
+            <div className="lg:col-span-3 space-y-6">
               {/* Tree Stats */}
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
                 {[
                   { label: "REGISTERED", value: demoTree.addressCount.toString(), sub: "beneficiaries" },
                   { label: "TREE DEPTH", value: (demoTree.layers.length - 1).toString(), sub: "levels" },
                   { label: "ROOT", value: truncateHash(demoTree.root, 6, 4), sub: "on-chain" },
                   { label: "ALGORITHM", value: "Keccak256", sub: "sorted pairs" },
                 ].map((stat) => (
-                  <div key={stat.label} className="p-3 rounded bg-surface-1 border border-hairline">
-                    <div className="text-[10px] font-mono text-ink-tertiary uppercase tracking-wider">{stat.label}</div>
-                    <div className="text-sm font-semibold text-ink mt-0.5 font-mono">{stat.value}</div>
-                    <div className="text-[10px] text-ink-tertiary">{stat.sub}</div>
+                  <div key={stat.label} className="p-4 rounded-2xl bg-white border border-hairline shadow-sm">
+                    <div className="text-[10px] font-semibold text-muted uppercase tracking-wider">{stat.label}</div>
+                    <div className="text-base font-semibold text-ink mt-0.5 font-mono">{stat.value}</div>
+                    <div className="text-xs text-muted">{stat.sub}</div>
                   </div>
                 ))}
               </div>
 
               {/* Merkle Proof Visualization */}
-              <div className="p-5 rounded-lg bg-surface-1 border border-hairline">
-                <div className="flex items-center justify-between mb-4 pb-3 border-b border-hairline">
+              <div className="p-6 rounded-2xl bg-white border border-hairline shadow-card">
+                <div className="flex items-center justify-between mb-5 pb-4 border-b border-hairline">
                   <div className="flex items-center gap-2">
-                    <GitBranch className="w-3.5 h-3.5 text-primary" />
+                    <GitBranch className="w-4 h-4 text-primary" />
                     <h3 className="text-sm font-semibold text-ink">Merkle Proof Inspector</h3>
                   </div>
                   <button
                     onClick={() => setShowProofTree(!showProofTree)}
-                    className="flex items-center gap-1 px-2 py-1 rounded bg-surface-2 border border-hairline text-[10px] font-mono text-ink-subtle hover:text-ink transition-colors"
+                    className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-surface-soft border border-hairline text-xs font-mono text-body hover:text-ink transition-colors"
                   >
-                    {showProofTree ? <EyeOff className="w-3 h-3" /> : <Eye className="w-3 h-3" />}
-                    {showProofTree ? "Hide Layers" : "Show Layers"}
+                    {showProofTree ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                    <span>{showProofTree ? "Hide Layers" : "Show Layers"}</span>
                   </button>
                 </div>
 
                 {proofResult ? (
-                  <div className="space-y-3">
+                  <div className="space-y-4">
                     {/* Leaf */}
-                    <div className="p-3 rounded bg-canvas border border-hairline">
-                      <div className="text-[10px] font-mono text-ink-tertiary uppercase tracking-wider mb-1">
+                    <div className="p-4 rounded-xl bg-surface-soft border border-hairline">
+                      <div className="text-[10px] font-semibold text-muted uppercase tracking-wider mb-1">
                         Leaf = keccak256(abi.encodePacked(address))
                       </div>
                       <div className="text-xs font-mono text-ink break-all">{proofResult.leaf}</div>
-                      <div className="text-[10px] font-mono text-ink-tertiary mt-1">
+                      <div className="text-xs font-mono text-body mt-1">
                         Index: {proofResult.index} · Status: {proofResult.valid ? (
-                          <span className="text-semantic-success">✓ VALID</span>
+                          <span className="text-semantic-up font-semibold">✓ VALID</span>
                         ) : (
-                          <span className="text-red-400">✗ NOT FOUND</span>
+                          <span className="text-semantic-down font-semibold">✗ NOT FOUND</span>
                         )}
                       </div>
                     </div>
 
                     {/* Proof Path */}
                     {proofResult.valid && proofResult.proof.length > 0 && (
-                      <div className="space-y-1.5">
-                        <div className="text-[10px] font-mono text-ink-tertiary uppercase tracking-wider">
+                      <div className="space-y-2">
+                        <div className="text-xs font-semibold text-muted uppercase tracking-wider">
                           Proof Path ({proofResult.proof.length} siblings)
                         </div>
                         {proofResult.proof.map((hash, i) => (
                           <div
                             key={i}
-                            className="flex items-center gap-2 p-2 rounded bg-canvas border border-hairline text-xs font-mono"
+                            className="flex items-center gap-2 p-2.5 rounded-xl bg-surface-soft border border-hairline text-xs font-mono"
                           >
-                            <span className="text-ink-tertiary w-10 shrink-0 text-[10px]">
+                            <span className="text-muted w-8 shrink-0 text-xs">
                               [{i}]
                             </span>
                             <span className="text-ink break-all">{hash}</span>
@@ -599,7 +503,7 @@ export default function BeneficiaryPage() {
                               onClick={() => copyToClipboard(hash)}
                               className="shrink-0"
                             >
-                              <Copy className="w-3 h-3 text-ink-tertiary hover:text-ink" />
+                              <Copy className="w-3.5 h-3.5 text-muted hover:text-ink" />
                             </button>
                           </div>
                         ))}
@@ -607,62 +511,22 @@ export default function BeneficiaryPage() {
                     )}
 
                     {/* Root */}
-                    <div className="p-3 rounded bg-canvas border border-primary/20">
-                      <div className="text-[10px] font-mono text-ink-tertiary uppercase tracking-wider mb-1">
-                        Merkle Root (committed on-chain)
+                    <div className="p-4 rounded-xl bg-blue-50/50 border border-blue-200">
+                      <div className="text-[10px] font-semibold text-primary uppercase tracking-wider mb-1">
+                        Merkle Root (Committed On-Chain)
                       </div>
-                      <div className="text-xs font-mono text-primary break-all flex items-center gap-2">
+                      <div className="text-xs font-mono text-primary font-semibold break-all flex items-center gap-2">
                         <span>{proofResult.root}</span>
                         <button onClick={() => copyToClipboard(proofResult.root)}>
-                          <Copy className="w-3 h-3 text-ink-tertiary hover:text-primary shrink-0" />
+                          <Copy className="w-3.5 h-3.5 text-primary hover:text-primary-hover shrink-0" />
                         </button>
                       </div>
                     </div>
-
-                    {/* Verification */}
-                    {proofResult.valid && (
-                      <div className="p-3 rounded bg-canvas border border-semantic-success/20 text-xs font-mono flex items-center gap-2">
-                        <CheckCircle2 className="w-4 h-4 text-semantic-success shrink-0" />
-                        <span className="text-semantic-success">
-                          MerkleProof.verify(proof, root, leaf) → <strong>true</strong>
-                        </span>
-                      </div>
-                    )}
                   </div>
                 ) : (
-                  <div className="text-center py-8 text-xs text-ink-tertiary font-mono">
-                    <Hash className="w-6 h-6 mx-auto mb-2 text-ink-tertiary/50" />
-                    Enter an address and verify to see the proof path
-                  </div>
-                )}
-
-                {/* Full Tree Layers */}
-                {showProofTree && (
-                  <div className="mt-4 pt-4 border-t border-hairline space-y-3">
-                    <div className="text-[10px] font-mono text-ink-tertiary uppercase tracking-wider">
-                      Full Tree Layers (bottom → root)
-                    </div>
-                    {demoTree.layers.map((layer, layerIdx) => (
-                      <div key={layerIdx} className="space-y-1">
-                        <div className="text-[10px] font-mono text-ink-subtle">
-                          Layer {layerIdx} ({layer.length} node{layer.length !== 1 ? "s" : ""})
-                          {layerIdx === 0 && " — leaves"}
-                          {layerIdx === demoTree.layers.length - 1 && " — root"}
-                        </div>
-                        {layer.map((hash, i) => (
-                          <div
-                            key={i}
-                            className={`text-[10px] font-mono px-2 py-1 rounded border ${
-                              layerIdx === demoTree.layers.length - 1
-                                ? "border-primary/30 bg-primary/5 text-primary"
-                                : "border-hairline bg-canvas text-ink-subtle"
-                            } break-all`}
-                          >
-                            {hash}
-                          </div>
-                        ))}
-                      </div>
-                    ))}
+                  <div className="text-center py-10 text-xs text-muted font-mono">
+                    <Hash className="w-8 h-8 mx-auto mb-2 text-muted/50" />
+                    Enter an address and verify to inspect the proof path
                   </div>
                 )}
               </div>
@@ -670,31 +534,26 @@ export default function BeneficiaryPage() {
           </div>
         )}
 
-        {/* ══════════════════════════════════════════════════════════════════════
-            TAB 2: NGO MERKLE TREE CONSOLE
-            ══════════════════════════════════════════════════════════════════════ */}
+        {/* TAB 2: NGO REGISTRY CONSOLE */}
         {activeTab === "ngo" && (
-          <div className="max-w-3xl space-y-4">
-            <div className="p-5 rounded-lg bg-surface-1 border border-hairline">
-              <div className="flex items-center gap-2 mb-4 pb-3 border-b border-hairline">
-                <div className="w-6 h-6 rounded bg-canvas border border-hairline flex items-center justify-center text-primary">
-                  <FileText className="w-3.5 h-3.5" />
+          <div className="max-w-3xl space-y-6">
+            <div className="p-6 rounded-2xl bg-white border border-hairline shadow-card">
+              <div className="flex items-center gap-3 mb-5 pb-4 border-b border-hairline">
+                <div className="w-8 h-8 rounded-full bg-blue-50 text-primary flex items-center justify-center">
+                  <FileText className="w-4 h-4" />
                 </div>
                 <div>
-                  <h2 className="text-sm font-semibold text-ink">NGO Beneficiary Registry</h2>
-                  <span className="text-[10px] font-mono text-ink-tertiary">
+                  <h2 className="text-base font-semibold text-ink">NGO Beneficiary Registry</h2>
+                  <span className="text-xs text-body">
                     Upload → Build Tree → Commit Root On-Chain
                   </span>
                 </div>
               </div>
 
-              {/* Step 1: Upload */}
               {ngoStep === "upload" && (
                 <div className="space-y-4">
-                  <p className="text-xs text-ink-subtle leading-relaxed">
-                    Upload a CSV of verified victim wallet addresses. The system computes Keccak256 hashes
-                    for each address, builds a Merkle tree with sorted pairs, and extracts the 32-byte root
-                    for on-chain commitment. No personal data touches the blockchain.
+                  <p className="text-sm text-body leading-relaxed">
+                    Upload a CSV of verified victim wallet addresses. Pulse computes Keccak256 hashes, builds a Merkle tree, and extracts the 32-byte root for on-chain commitment.
                   </p>
 
                   <input
@@ -707,236 +566,143 @@ export default function BeneficiaryPage() {
 
                   <button
                     onClick={() => fileInputRef.current?.click()}
-                    className="w-full border border-dashed border-hairline hover:border-hairline-strong rounded-md p-6 text-center bg-canvas cursor-pointer transition-colors group"
+                    className="w-full border border-dashed border-hairline hover:border-primary rounded-2xl p-8 text-center bg-surface-soft cursor-pointer transition-colors group"
                   >
-                    <Upload className="w-5 h-5 mx-auto text-ink-tertiary group-hover:text-primary mb-1.5 transition-colors" />
-                    <span className="text-ink font-medium text-xs block">
+                    <Upload className="w-6 h-6 mx-auto text-muted group-hover:text-primary mb-2 transition-colors" />
+                    <span className="text-ink font-semibold text-sm block">
                       Upload Beneficiary Addresses (.csv)
                     </span>
-                    <span className="text-[10px] text-ink-tertiary mt-0.5 block">
-                      One address per line or comma-separated · Accepts 0x-prefixed hex
+                    <span className="text-xs text-muted mt-1 block">
+                      One address per line or comma-separated
                     </span>
                   </button>
 
                   <div className="flex items-center gap-3">
                     <div className="h-px flex-1 bg-hairline" />
-                    <span className="text-[10px] font-mono text-ink-tertiary">OR</span>
+                    <span className="text-xs font-mono text-muted">OR</span>
                     <div className="h-px flex-1 bg-hairline" />
                   </div>
 
                   <button
                     onClick={handleLoadDemoAddresses}
-                    className="w-full py-2 px-4 rounded-md bg-surface-2 hover:bg-surface-3 text-ink text-xs font-mono border border-hairline transition-colors"
+                    className="w-full py-3 px-4 rounded-full bg-surface-soft hover:bg-surface-strong text-ink text-xs font-semibold transition-colors"
                   >
                     Load Demo Addresses ({DEMO_BENEFICIARIES.length} beneficiaries)
                   </button>
                 </div>
               )}
 
-              {/* Step 2: Tree Built */}
               {ngoStep === "tree" && ngoTree && (
                 <div className="space-y-4">
-                  <div className="p-3 rounded bg-canvas border border-semantic-success/20 text-xs flex items-start gap-2">
-                    <CheckCircle2 className="w-4 h-4 text-semantic-success shrink-0 mt-0.5" />
+                  <div className="p-4 rounded-xl bg-emerald-50 border border-emerald-200 text-xs flex items-start gap-2.5">
+                    <CheckCircle2 className="w-4 h-4 text-semantic-up shrink-0 mt-0.5" />
                     <div>
-                      <div className="text-semantic-success font-medium">
+                      <div className="text-semantic-up font-semibold">
                         Merkle Tree Built Successfully
                       </div>
-                      <div className="text-ink-tertiary font-mono text-[10px]">
-                        {ngoTree.addressCount} addresses hashed · {ngoTree.layers.length - 1} tree levels · Sorted pair hashing
+                      <div className="text-body font-mono text-xs">
+                        {ngoTree.addressCount} addresses hashed · {ngoTree.layers.length - 1} tree levels
                       </div>
                     </div>
                   </div>
 
-                  {/* Addresses */}
-                  <div className="space-y-1.5">
-                    <div className="text-[10px] font-mono text-ink-tertiary uppercase tracking-wider">
-                      Hashed Leaves ({ngoAddresses.length})
-                    </div>
-                    <div className="max-h-40 overflow-y-auto space-y-1 pr-1">
-                      {ngoAddresses.map((addr, i) => (
-                        <div
-                          key={i}
-                          className="flex items-center gap-2 p-2 rounded bg-canvas border border-hairline text-[10px] font-mono"
-                        >
-                          <span className="text-ink-tertiary w-6 shrink-0">{i + 1}.</span>
-                          <span className="text-ink-subtle">{truncateHash(addr, 8, 6)}</span>
-                          <ChevronRight className="w-3 h-3 text-ink-tertiary shrink-0" />
-                          <span className="text-ink break-all">{truncateHash(hashAddress(addr), 10, 8)}</span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Root */}
-                  <div className="p-3 rounded bg-canvas border border-primary/20">
-                    <div className="text-[10px] font-mono text-ink-tertiary uppercase tracking-wider mb-1">
+                  <div className="p-4 rounded-xl bg-surface-soft border border-hairline">
+                    <div className="text-xs font-semibold text-muted uppercase tracking-wider mb-1">
                       Computed Merkle Root
                     </div>
-                    <div className="text-xs font-mono text-primary break-all flex items-center gap-2">
-                      <span>{ngoTree.root}</span>
-                      <button onClick={() => copyToClipboard(ngoTree.root)}>
-                        <Copy className="w-3 h-3 text-ink-tertiary hover:text-primary shrink-0" />
-                      </button>
+                    <div className="text-xs font-mono text-primary font-semibold break-all">
+                      {ngoTree.root}
                     </div>
                   </div>
 
-                  <div className="flex gap-2">
+                  <div className="flex gap-2 pt-2">
                     <button
                       onClick={resetNgo}
-                      className="px-3 py-2 rounded-md bg-surface-2 hover:bg-surface-3 text-ink-subtle text-xs font-mono border border-hairline transition-colors"
+                      className="px-4 py-2.5 rounded-full bg-surface-soft hover:bg-surface-strong text-body text-xs font-semibold transition-colors"
                     >
                       Reset
                     </button>
                     <button
                       onClick={handleCommitRoot}
-                      className="flex-1 py-2 px-4 rounded-md bg-primary hover:bg-primary-hover text-white text-xs font-medium transition-colors flex items-center justify-center gap-2"
+                      className="flex-1 py-2.5 px-4 rounded-full bg-primary hover:bg-primary-hover active:bg-primary-active text-white text-xs font-semibold transition-colors flex items-center justify-center gap-2 shadow-sm"
                     >
-                      <Upload className="w-3.5 h-3.5" />
+                      <Upload className="w-4 h-4" />
                       Pin to IPFS & Commit Root On-Chain
                     </button>
                   </div>
                 </div>
               )}
 
-              {/* Step 3: Committed */}
               {ngoStep === "committed" && ngoTree && (
                 <div className="space-y-4">
-                  <div className="p-4 rounded bg-canvas border border-semantic-success/20 text-center space-y-2">
-                    <CheckCircle2 className="w-8 h-8 text-semantic-success mx-auto" />
-                    <div className="text-sm font-semibold text-ink">Root Committed On-Chain</div>
-                    <div className="text-[11px] text-ink-subtle">
-                      {ngoTree.addressCount} beneficiaries registered. Registry pinned to IPFS/Filecoin.
+                  <div className="p-5 rounded-xl bg-emerald-50 border border-emerald-200 text-center space-y-2">
+                    <CheckCircle2 className="w-10 h-10 text-semantic-up mx-auto" />
+                    <div className="text-base font-semibold text-ink">Root Committed On-Chain</div>
+                    <div className="text-xs text-body">
+                      {ngoTree.addressCount} beneficiaries registered on Filecoin / IPFS.
                     </div>
                   </div>
 
-                  <div className="space-y-2 text-[11px] font-mono">
-                    <div className="p-2.5 rounded bg-surface-2 border border-hairline">
-                      <div className="text-ink-tertiary mb-0.5">Merkle Root:</div>
-                      <div className="text-primary break-all">{ngoTree.root}</div>
+                  <div className="space-y-2 text-xs font-mono">
+                    <div className="p-3 rounded-xl bg-surface-soft border border-hairline">
+                      <div className="text-muted text-[10px] uppercase">Merkle Root:</div>
+                      <div className="text-primary font-semibold break-all">{ngoTree.root}</div>
                     </div>
-                    <div className="p-2.5 rounded bg-surface-2 border border-hairline flex items-center justify-between">
-                      <span className="text-ink-tertiary">Commit Tx:</span>
+                    <div className="p-3 rounded-xl bg-surface-soft border border-hairline flex items-center justify-between">
+                      <span className="text-body">Commit Tx:</span>
                       <span className="text-ink">{truncateHash(ngoCommitTxHash)}</span>
                     </div>
-                    <div className="p-2.5 rounded bg-surface-2 border border-hairline">
-                      <div className="text-ink-tertiary mb-0.5">IPFS / Filecoin CID:</div>
-                      <div className="text-ink break-all">{ngoIpfsCid}</div>
-                    </div>
-                    <div className="p-2.5 rounded bg-surface-2 border border-hairline flex items-center justify-between">
-                      <span className="text-ink-tertiary">Contract:</span>
-                      <span className="text-ink">BeneficiaryRegistry (Polygon Amoy)</span>
-                    </div>
-                    <div className="p-2.5 rounded bg-surface-2 border border-hairline flex items-center justify-between">
-                      <span className="text-ink-tertiary">Storage:</span>
-                      <span className="text-ink">Filecoin (via IPFS pinning)</span>
-                    </div>
-                  </div>
-
-                  <div className="flex flex-col gap-2">
-                    <Link
-                      href={`/audit?search=${ngoCommitTxHash}`}
-                      className="w-full py-2.5 px-4 rounded-md bg-primary hover:bg-primary-hover text-white text-xs font-mono font-medium transition-colors flex items-center justify-center gap-2 shadow-sm text-center"
-                    >
-                      <ShieldCheck className="w-4 h-4" />
-                      <span>Inspect Committed Root in Live Audit Ledger →</span>
-                    </Link>
-
-                    <button
-                      onClick={resetNgo}
-                      className="w-full py-2 px-4 rounded-md bg-surface-2 hover:bg-surface-3 text-ink text-xs font-mono border border-hairline transition-colors"
-                    >
-                      Register Another Crisis
-                    </button>
-                  </div>
-                </div>
-              )}
-            </div>
-
-            {/* How It Works */}
-            <div className="p-5 rounded-lg bg-surface-1 border border-hairline">
-              <h3 className="text-xs font-semibold text-ink mb-3">How the Zero-Knowledge Flow Works</h3>
-              <div className="space-y-2">
-                {[
-                  { step: "1", title: "Field Verification", desc: "NGO workers physically verify victims and collect wallet addresses." },
-                  { step: "2", title: "Merkle Tree Construction", desc: "Each address is hashed via keccak256(abi.encodePacked(addr)). Leaves are sorted and paired bottom-up." },
-                  { step: "3", title: "Root Commitment", desc: "Only the 32-byte Merkle root is committed on-chain. The full address list is pinned to IPFS/Filecoin." },
-                  { step: "4", title: "Gasless Claim", desc: "Victim signs EIP-712 typed data off-chain. Pulse Relayer broadcasts the transaction — victim pays $0 gas." },
-                  { step: "5", title: "On-Chain Verification", desc: "Contract calls MerkleProof.verify(proof, root, leaf). If valid, aid is transferred directly to victim." },
-                ].map((item) => (
-                  <div key={item.step} className="flex items-start gap-2.5">
-                    <span className="w-5 h-5 rounded bg-canvas border border-hairline flex items-center justify-center text-[10px] font-mono text-primary shrink-0 mt-0.5">
-                      {item.step}
-                    </span>
-                    <div>
-                      <div className="text-xs font-medium text-ink">{item.title}</div>
-                      <div className="text-[10px] text-ink-tertiary leading-relaxed">{item.desc}</div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* ══════════════════════════════════════════════════════════════════════
-            TAB 3: OFFLINE QR VOUCHERS
-            ══════════════════════════════════════════════════════════════════════ */}
-        {activeTab === "vouchers" && (
-          <div className="max-w-3xl space-y-4">
-            <div className="p-5 rounded-lg bg-surface-1 border border-hairline">
-              <div className="flex items-center gap-2 mb-4 pb-3 border-b border-hairline">
-                <div className="w-6 h-6 rounded bg-canvas border border-hairline flex items-center justify-center text-primary">
-                  <QrCode className="w-3.5 h-3.5" />
-                </div>
-                <div>
-                  <h2 className="text-sm font-semibold text-ink">Offline QR Voucher Generator</h2>
-                  <span className="text-[10px] font-mono text-ink-tertiary">
-                    For disaster zones with degraded connectivity
-                  </span>
-                </div>
-              </div>
-
-              <p className="text-xs text-ink-subtle leading-relaxed mb-4">
-                Generate printable voucher cards with embedded Merkle proofs encoded as QR codes.
-                Field workers distribute these in areas with no internet access. When connectivity
-                is restored, victims scan the QR code to trigger their gasless on-chain claim.
-              </p>
-
-              {!voucherGenerated ? (
-                <div className="space-y-3">
-                  <div className="p-3 rounded bg-canvas border border-hairline text-[11px] font-mono space-y-1.5">
-                    <div className="flex justify-between">
-                      <span className="text-ink-tertiary">Crisis:</span>
-                      <span className="text-ink">Turkey-Syria Earthquake 2026</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-ink-tertiary">Registered Beneficiaries:</span>
-                      <span className="text-ink">{DEMO_BENEFICIARIES.length}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-ink-tertiary">Voucher Format:</span>
-                      <span className="text-ink">Printable Card (A6)</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-ink-tertiary">QR Payload:</span>
-                      <span className="text-ink">Merkle Proof + Voucher Code</span>
+                    <div className="p-3 rounded-xl bg-surface-soft border border-hairline flex items-center justify-between">
+                      <span className="text-body">IPFS CID:</span>
+                      <span className="text-ink">{truncateHash(ngoIpfsCid)}</span>
                     </div>
                   </div>
 
                   <button
-                    onClick={handleGenerateVouchers}
-                    className="w-full py-2 px-4 rounded-md bg-primary hover:bg-primary-hover text-white text-xs font-medium transition-colors flex items-center justify-center gap-2"
+                    onClick={resetNgo}
+                    className="w-full py-2.5 px-4 rounded-full bg-surface-soft hover:bg-surface-strong text-ink text-xs font-semibold transition-colors"
                   >
-                    <QrCode className="w-3.5 h-3.5" />
+                    Register Another Crisis
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* TAB 3: OFFLINE QR VOUCHERS */}
+        {activeTab === "vouchers" && (
+          <div className="max-w-3xl space-y-6">
+            <div className="p-6 rounded-2xl bg-white border border-hairline shadow-card">
+              <div className="flex items-center gap-3 mb-5 pb-4 border-b border-hairline">
+                <div className="w-8 h-8 rounded-full bg-blue-50 text-primary flex items-center justify-center">
+                  <QrCode className="w-4 h-4" />
+                </div>
+                <div>
+                  <h2 className="text-base font-semibold text-ink">Offline QR Voucher Generator</h2>
+                  <span className="text-xs text-body">For degraded connectivity environments</span>
+                </div>
+              </div>
+
+              {!voucherGenerated ? (
+                <div className="space-y-4">
+                  <p className="text-sm text-body leading-relaxed">
+                    Generate printable voucher cards with embedded Merkle proofs encoded as QR codes. Victims scan the code once connectivity returns to claim aid.
+                  </p>
+
+                  <button
+                    onClick={() => setVoucherGenerated(true)}
+                    className="w-full py-3 px-4 rounded-full bg-primary hover:bg-primary-hover active:bg-primary-active text-white text-sm font-semibold transition-colors flex items-center justify-center gap-2 shadow-sm"
+                  >
+                    <QrCode className="w-4 h-4" />
                     Generate {DEMO_BENEFICIARIES.length} Vouchers
                   </button>
                 </div>
               ) : (
-                <div className="space-y-3">
-                  <div className="p-3 rounded bg-canvas border border-semantic-success/20 text-xs flex items-center gap-2">
-                    <CheckCircle2 className="w-4 h-4 text-semantic-success shrink-0" />
-                    <span className="text-semantic-success font-medium">
+                <div className="space-y-4">
+                  <div className="p-3.5 rounded-xl bg-emerald-50 border border-emerald-200 text-xs flex items-center gap-2">
+                    <CheckCircle2 className="w-4 h-4 text-semantic-up shrink-0" />
+                    <span className="text-semantic-up font-semibold">
                       {voucherData.length} vouchers generated
                     </span>
                   </div>
@@ -945,23 +711,22 @@ export default function BeneficiaryPage() {
                     {voucherData.map((v, i) => (
                       <div
                         key={i}
-                        className="p-3 rounded bg-canvas border border-hairline flex items-center justify-between gap-3"
+                        className="p-3.5 rounded-xl bg-surface-soft border border-hairline flex items-center justify-between gap-3"
                       >
                         <div className="flex items-center gap-3 min-w-0">
-                          {/* QR Placeholder */}
-                          <div className="w-10 h-10 rounded bg-surface-2 border border-hairline flex items-center justify-center shrink-0">
-                            <QrCode className="w-5 h-5 text-ink-tertiary" />
+                          <div className="w-10 h-10 rounded-xl bg-white border border-hairline flex items-center justify-center shrink-0">
+                            <QrCode className="w-5 h-5 text-muted" />
                           </div>
                           <div className="min-w-0">
                             <div className="text-xs font-mono font-semibold text-primary">{v.code}</div>
-                            <div className="text-[10px] font-mono text-ink-tertiary truncate">
+                            <div className="text-[10px] font-mono text-muted truncate">
                               {truncateHash(v.address, 8, 6)}
                             </div>
                           </div>
                         </div>
                         <div className="text-right shrink-0">
-                          <div className="text-xs font-mono text-ink font-medium">150 USDC</div>
-                          <div className="text-[10px] text-ink-tertiary">Gasless</div>
+                          <div className="text-xs font-mono text-ink font-semibold">150 USDC</div>
+                          <div className="text-[10px] text-muted">Gasless</div>
                         </div>
                       </div>
                     ))}
@@ -969,7 +734,6 @@ export default function BeneficiaryPage() {
 
                   <button
                     onClick={() => {
-                      // Generate a downloadable JSON with all voucher data
                       const exportData = voucherData.map((v) => {
                         const proof = generateProof(demoTree, v.address);
                         return {
@@ -990,26 +754,13 @@ export default function BeneficiaryPage() {
                       a.click();
                       URL.revokeObjectURL(url);
                     }}
-                    className="w-full py-2 px-4 rounded-md bg-surface-2 hover:bg-surface-3 text-ink text-xs font-mono border border-hairline transition-colors flex items-center justify-center gap-2"
+                    className="w-full py-2.5 px-4 rounded-full bg-surface-soft hover:bg-surface-strong text-ink text-xs font-semibold border border-hairline transition-colors flex items-center justify-center gap-2"
                   >
                     <Download className="w-3.5 h-3.5" />
-                    Export Voucher Data (JSON with Proofs)
+                    Export Voucher JSON
                   </button>
                 </div>
               )}
-            </div>
-
-            {/* Warning */}
-            <div className="p-4 rounded-lg bg-surface-1 border border-hairline flex items-start gap-2.5">
-              <AlertTriangle className="w-4 h-4 text-yellow-500 shrink-0 mt-0.5" />
-              <div>
-                <div className="text-xs font-medium text-ink mb-0.5">Offline Security Notice</div>
-                <div className="text-[10px] text-ink-subtle leading-relaxed">
-                  QR vouchers contain cryptographic Merkle proofs. Each voucher can only be claimed once —
-                  the smart contract marks the leaf as consumed after the first successful claim.
-                  Double-claim attempts are rejected on-chain.
-                </div>
-              </div>
             </div>
           </div>
         )}

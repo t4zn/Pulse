@@ -1,63 +1,108 @@
 import React from "react";
 import Link from "next/link";
 import { Zap, ShieldCheck, ExternalLink, Globe } from "lucide-react";
-import { NETWORKS } from "@/lib/contracts";
 
 export function Footer() {
   return (
-    <footer className="w-full bg-[#070B12] border-t border-white/[0.08] py-8 px-4 md:px-8 text-[#94A3B8]">
-      <div className="max-w-[1360px] mx-auto flex flex-col md:flex-row items-center justify-between gap-6 text-xs font-mono">
-        {/* Left: Brand & Description */}
-        <div className="flex flex-col sm:flex-row items-center sm:items-start gap-3 text-center sm:text-left">
-          <div className="flex items-center gap-2">
-            <div className="w-5 h-5 rounded bg-[#101824] border border-white/[0.08] flex items-center justify-center text-sky-400">
-              <Zap className="w-3 h-3" />
+    <footer className="w-full bg-white border-t border-hairline py-16 px-4 md:px-8 text-body text-sm">
+      <div className="max-w-[1280px] mx-auto">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-10 mb-16">
+          {/* Brand & Mission */}
+          <div className="lg:col-span-2 space-y-4">
+            <div className="flex items-center gap-2.5">
+              <div className="w-7 h-7 rounded-full bg-primary flex items-center justify-center text-white">
+                <Zap className="w-3.5 h-3.5" />
+              </div>
+              <span className="font-semibold text-base tracking-tight text-ink">
+                PULSE PROTOCOL
+              </span>
             </div>
-            <span className="font-bold text-[#F8FAFC]">PULSE Protocol</span>
+            <p className="text-body text-sm max-w-sm leading-relaxed">
+              Institutional-grade autonomous disaster liquidity vaults. Instant AI triage, cross-chain contingency releases, and zero-knowledge beneficiary aid.
+            </p>
+            <div className="flex items-center gap-2 pt-1 text-xs text-muted">
+              <span className="w-2 h-2 rounded-full bg-semantic-up"></span>
+              <span>All Systems Operational • Sepolia & Amoy Connected</span>
+            </div>
           </div>
-          <span className="hidden sm:inline text-white/20">•</span>
-          <span className="text-[#64748B]">Cross-Chain Emergency Aid Infrastructure</span>
+
+          {/* Quick Links */}
+          <div className="space-y-3">
+            <h4 className="font-semibold text-xs text-ink uppercase tracking-wider">Protocol</h4>
+            <ul className="space-y-2 text-sm">
+              <li>
+                <Link href="/" className="hover:text-ink transition-colors">Command Center</Link>
+              </li>
+              <li>
+                <Link href="/crisis/turkey-earthquake-2026" className="hover:text-ink transition-colors">Active Vaults</Link>
+              </li>
+              <li>
+                <Link href="/beneficiary" className="hover:text-ink transition-colors">ZK Aid Claims</Link>
+              </li>
+              <li>
+                <Link href="/oracle" className="hover:text-ink transition-colors">AI Oracle Sim</Link>
+              </li>
+            </ul>
+          </div>
+
+          {/* Auditing & Verification */}
+          <div className="space-y-3">
+            <h4 className="font-semibold text-xs text-ink uppercase tracking-wider">Transparency</h4>
+            <ul className="space-y-2 text-sm">
+              <li>
+                <Link href="/audit" className="hover:text-ink transition-colors">Live Audit Ledger</Link>
+              </li>
+              <li>
+                <a href="https://ipfs.io" target="_blank" rel="noreferrer" className="hover:text-ink transition-colors flex items-center gap-1">
+                  <span>IPFS Registry</span>
+                  <ExternalLink className="w-3 h-3 text-muted" />
+                </a>
+              </li>
+              <li>
+                <a href="https://amoy.polygonscan.com" target="_blank" rel="noreferrer" className="hover:text-ink transition-colors flex items-center gap-1">
+                  <span>PolygonScan</span>
+                  <ExternalLink className="w-3 h-3 text-muted" />
+                </a>
+              </li>
+              <li>
+                <a href="https://sepolia.etherscan.io" target="_blank" rel="noreferrer" className="hover:text-ink transition-colors flex items-center gap-1">
+                  <span>Etherscan</span>
+                  <ExternalLink className="w-3 h-3 text-muted" />
+                </a>
+              </li>
+            </ul>
+          </div>
+
+          {/* Governance & Field */}
+          <div className="space-y-3">
+            <h4 className="font-semibold text-xs text-ink uppercase tracking-wider">Field NGO</h4>
+            <ul className="space-y-2 text-sm">
+              <li>
+                <Link href="/beneficiary" className="hover:text-ink transition-colors">Merkle Root Engine</Link>
+              </li>
+              <li>
+                <Link href="/beneficiary" className="hover:text-ink transition-colors">QR Voucher Cards</Link>
+              </li>
+              <li>
+                <Link href="/audit" className="hover:text-ink transition-colors">Proof of Delivery</Link>
+              </li>
+              <li>
+                <span className="text-muted text-xs">EIP-712 Meta-Tx Relayer</span>
+              </li>
+            </ul>
+          </div>
         </div>
 
-        {/* Middle: Networks & Stack */}
-        <div className="flex flex-wrap items-center justify-center gap-4 text-[11px] text-[#94A3B8]">
-          <div className="flex items-center gap-1.5">
-            <span className="text-[#64748B]">Networks:</span>
-            <a 
-              href={NETWORKS.sepolia.explorerUrl} 
-              target="_blank" 
-              rel="noopener noreferrer" 
-              className="text-[#F8FAFC] hover:text-sky-400 transition-colors"
-            >
-              Sepolia
-            </a>
-            <span className="text-white/20">•</span>
-            <a 
-              href={NETWORKS.amoy.explorerUrl} 
-              target="_blank" 
-              rel="noopener noreferrer" 
-              className="text-[#F8FAFC] hover:text-sky-400 transition-colors"
-            >
-              Polygon Amoy
-            </a>
+        {/* Legal Band */}
+        <div className="pt-8 border-t border-hairline flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-muted">
+          <div>
+            © 2026 Pulse Protocol. Decentralized Humanitarian Emergency Relief Infrastructure.
           </div>
-          <span className="hidden md:inline text-white/20">|</span>
-          <div className="flex items-center gap-1.5">
-            <span className="text-[#64748B]">Technology:</span>
-            <span className="text-[#F8FAFC]">Solidity</span>
-            <span className="text-white/20">•</span>
-            <span className="text-[#F8FAFC]">ethers.js</span>
-            <span className="text-white/20">•</span>
-            <span className="text-[#F8FAFC]">wagmi</span>
-            <span className="text-white/20">•</span>
-            <span className="text-[#F8FAFC]">IPFS</span>
+          <div className="flex items-center gap-6">
+            <span>Non-Custodial</span>
+            <span>Zero-Knowledge Proofs</span>
+            <span>Filecoin Storage</span>
           </div>
-        </div>
-
-        {/* Right: Verification Guarantee */}
-        <div className="text-[11px] text-[#64748B] flex items-center gap-1.5">
-          <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
-          <span>Public audit data is independently verifiable on-chain.</span>
         </div>
       </div>
     </footer>

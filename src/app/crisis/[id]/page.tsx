@@ -38,7 +38,7 @@ interface CrisisDetail {
   targetUSD: number;
   severityIndex: number;
   severityStatus: string;
-  statusColor: string;
+  statusBadge: string;
   victimsVerified: number;
   disbursedUSD: number;
   description: string;
@@ -79,7 +79,7 @@ const crisisDatabase: Record<string, CrisisDetail> = {
     targetUSD: 1000000,
     severityIndex: 9.4,
     severityStatus: "CRITICAL",
-    statusColor: "text-red-400 border-red-900/50 bg-red-950/20",
+    statusBadge: "bg-red-50 text-semantic-down border-red-200",
     victimsVerified: 8420,
     disbursedUSD: 540000,
     description: "Direct cross-chain liquidity allocation for earthquake immediate search & rescue, surgical trauma kits, winterized shelter pods, and nutrition packs.",
@@ -118,25 +118,25 @@ const crisisDatabase: Record<string, CrisisDetail> = {
     targetUSD: 500000,
     severityIndex: 8.1,
     severityStatus: "HIGH ALERT",
-    statusColor: "text-amber-400 border-amber-900/50 bg-amber-950/20",
+    statusBadge: "bg-amber-50 text-amber-700 border-amber-200",
     victimsVerified: 4180,
     disbursedUSD: 280000,
-    description: "Emergency relief for flood-displaced communities, providing clean water filtration, emergency rations, and anti-venom medical kits.",
+    description: "Emergency rescue watercraft deployment, waterborne disease prevention medical stations, and food drop coordinates.",
     vaultAddresses: {
-      sepolia: "0x11B994190823488273619283746e44",
-      amoy: "0x98D291048827361928374619281a33",
+      sepolia: "0x11B9334c9012830029bca881",
+      amoy: "0x98D2001ba772091183aa1a33",
     },
     telemetry: {
-      sensorStation: "CWC Sensor IND-09 (Kabini Basin)",
-      primaryMetric: "Water Level: +4.2m above danger threshold",
-      secondaryMetric: "Discharge Rate: 1,420 m³/sec",
-      sensorStatus: "ONLINE • Alert Level Red",
+      sensorStation: "CWC Sensor Station IND-09",
+      primaryMetric: "River Level: +4.2m above danger mark",
+      secondaryMetric: "Rainfall Rate: 240mm / 24h",
+      sensorStatus: "ONLINE • Sensor calibrated",
     },
     aiDamageReport: {
-      structuralCollapsePct: 62,
-      roadBlockagePct: 81,
-      triageUrgency: "LEVEL 2 (URGENT AIRLIFT & EVACUATION)",
-      geminiAssessment: "Satellite SAR radar shows 42 sq km inundation. Main transportation arteries submerged. Clean water tablets and solar emergency radios prioritized.",
+      structuralCollapsePct: 42,
+      roadBlockagePct: 91,
+      triageUrgency: "LEVEL 2 (URGENT AIRLIFT REQUIRED)",
+      geminiAssessment: "Synthetic Aperture Radar detects widespread bridge severance. Water purification & inflatable rescue rafts are priority 1.",
     },
   },
   "horn-of-africa-2026": {
@@ -157,35 +157,33 @@ const crisisDatabase: Record<string, CrisisDetail> = {
     targetUSD: 400000,
     severityIndex: 7.6,
     severityStatus: "ELEVATED",
-    statusColor: "text-blue-400 border-blue-900/50 bg-blue-950/20",
+    statusBadge: "bg-blue-50 text-primary border-blue-200",
     victimsVerified: 1680,
     disbursedUSD: 160000,
-    description: "Emergency nutrition assistance, water trucking tankers, and emergency veterinary drought subsidies for pastoralist families.",
+    description: "Deep aquifer solar pumping infrastructure, therapeutic food distribution, and emergency pastoralist drought safety nets.",
     vaultAddresses: {
-      sepolia: "0x55C192837461928374619283743d99",
-      amoy: "0x22F492837461928374619283747e11",
+      sepolia: "0x55C100a9821389bc019283d99",
+      amoy: "0x22F4902188ba091122a7e11",
     },
     telemetry: {
-      sensorStation: "FEWS NET Sensor HO-08",
-      primaryMetric: "NDVI Vegetation Anomaly: -0.42",
-      secondaryMetric: "Consecutive Failed Rainy Seasons: 5",
-      sensorStatus: "ONLINE • Chronic High Stress",
+      sensorStation: "Copernicus NDVI Sentinel-3 Hub",
+      primaryMetric: "Vegetation Index: -0.42 anomaly",
+      secondaryMetric: "Soil Moisture: 4% (Severe Aridity)",
+      sensorStatus: "ONLINE • Satellite sync verified",
     },
     aiDamageReport: {
-      structuralCollapsePct: 15,
-      roadBlockagePct: 10,
-      triageUrgency: "LEVEL 2 (CRITICAL NUTRITION DISPATCH)",
-      geminiAssessment: "High-resolution optical scan shows acute water point depletion. Direct cash and fortified ration vouchers recommended.",
+      structuralCollapsePct: 5,
+      roadBlockagePct: 15,
+      triageUrgency: "LEVEL 2 (FAMINE PREVENTION DISPATCH)",
+      geminiAssessment: "High livestock mortality detected across nomadic corridors. Immediate ready-to-use therapeutic food (RUTF) allocation required.",
     },
   },
 };
 
-export default function CrisisPage({ params }: { params: { id: string } }) {
-  const crisisId = params.id || "turkey-earthquake-2026";
-  const crisis = crisisDatabase[crisisId] || crisisDatabase["turkey-earthquake-2026"];
-
-  const [selectedChain, setSelectedChain] = useState<"amoy" | "sepolia">("amoy");
-  const [donationAmount, setDonationAmount] = useState("100");
+export default function CrisisDetailPage({ params }: { params: { id: string } }) {
+  const crisis = crisisDatabase[params.id] || crisisDatabase["turkey-earthquake-2026"];
+  const [selectedChain, setSelectedChain] = useState<"sepolia" | "amoy">("amoy");
+  const [donationAmount, setDonationAmount] = useState("50");
   const [category, setCategory] = useState("general");
   const [donating, setDonating] = useState(false);
   const [txSuccess, setTxSuccess] = useState(false);
@@ -198,149 +196,119 @@ export default function CrisisPage({ params }: { params: { id: string } }) {
     setTimeout(() => {
       setDonating(false);
       setTxSuccess(true);
-    }, 1200);
+    }, 1500);
   };
 
-  const copyToClipboard = (text: string, key: string) => {
-    navigator.clipboard?.writeText(text);
-    setCopiedAddress(key);
+  const copyToClipboard = (text: string, type: string) => {
+    navigator.clipboard.writeText(text);
+    setCopiedAddress(type);
     setTimeout(() => setCopiedAddress(null), 2000);
   };
 
   return (
-    <div className="w-full bg-canvas text-ink min-h-screen py-8 px-4 md:px-8">
+    <div className="w-full bg-white text-ink min-h-screen py-8 px-4 md:px-8">
       <div className="max-w-[1280px] mx-auto">
-        {/* Navigation Breadcrumb */}
-        <div className="flex items-center justify-between mb-6">
-          <Link 
-            href="/" 
-            className="inline-flex items-center gap-1.5 text-xs font-mono text-ink-subtle hover:text-ink transition-colors"
-          >
-            <ArrowLeft className="w-3.5 h-3.5" /> Back to Command Center
-          </Link>
+        {/* Back Link */}
+        <Link href="/" className="inline-flex items-center gap-1.5 text-xs font-mono text-body hover:text-ink mb-6 transition-colors">
+          <ArrowLeft className="w-3.5 h-3.5" /> Back to Command Center
+        </Link>
 
-          <div className="flex items-center gap-2 text-xs font-mono text-ink-tertiary">
-            <span>VAULT ID:</span>
-            <span className="text-ink-muted">{crisis.id}</span>
+        {/* Page Header */}
+        <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-8">
+          <div>
+            <div className="flex items-center gap-2 mb-2">
+              <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-mono font-semibold uppercase border ${crisis.statusBadge}`}>
+                {crisis.severityStatus} • SEVERITY {crisis.severity}
+              </span>
+              <span className="text-xs text-body font-medium">{crisis.categoryName}</span>
+            </div>
+            <h1 className="text-2xl md:text-4xl font-normal tracking-tight text-ink mb-2">
+              {crisis.title}
+            </h1>
+            <div className="flex flex-wrap items-center gap-4 text-xs text-body">
+              <div className="flex items-center gap-1">
+                <Globe className="w-3.5 h-3.5 text-muted" />
+                <span>{crisis.location}</span>
+              </div>
+              <div className="flex items-center gap-1 font-mono text-muted">
+                <span>GPS: {crisis.gps}</span>
+              </div>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-3">
+            <a
+              href="#donation-terminal"
+              className="px-6 py-2.5 rounded-full bg-primary hover:bg-primary-hover active:bg-primary-active text-white text-sm font-semibold flex items-center gap-2 transition-all shadow-sm"
+            >
+              <Zap className="w-4 h-4" />
+              <span>Donate Now</span>
+            </a>
+            <Link
+              href="/audit"
+              className="px-5 py-2.5 rounded-full bg-surface-soft hover:bg-surface-strong text-ink text-sm font-semibold border border-hairline transition-colors"
+            >
+              <span>Audit Ledger</span>
+            </Link>
           </div>
         </div>
 
-        {/* Main Grid: 2 Cols (Crisis Telemetry & Details + Donation Terminal) */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Main Info & Live Telemetry Panel (2 Cols) */}
+        {/* 2-Column Grid: Left Telemetry & Map (2 cols), Right Donation Terminal (1 col) */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           <div className="lg:col-span-2 space-y-6">
-            {/* Header Card */}
-            <div className="p-6 rounded-lg bg-surface-1 border border-hairline">
-              <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
-                <div className="flex items-center gap-2">
-                  <span className={`px-2 py-0.5 rounded-pill text-[10px] font-mono uppercase border ${crisis.statusColor}`}>
-                    {crisis.severityStatus} • {crisis.severityIndex}/10
-                  </span>
-                  <span className="text-xs font-mono text-ink-subtle">
-                    {crisis.categoryName}
-                  </span>
-                </div>
-                <div className="flex items-center gap-1.5 text-xs font-mono text-ink-tertiary">
-                  <Globe className="w-3.5 h-3.5" />
-                  <span>{crisis.gps}</span>
-                </div>
-              </div>
-
-              <h1 className="text-2xl md:text-3xl font-semibold tracking-tight text-ink mb-2">
-                {crisis.title}
-              </h1>
-              <p className="text-xs text-ink-subtle leading-relaxed mb-5">
+            {/* Overview Card */}
+            <div className="p-6 rounded-2xl bg-white border border-hairline">
+              <h2 className="text-sm font-semibold text-ink uppercase tracking-wider mb-2">Emergency Overview</h2>
+              <p className="text-sm text-body leading-relaxed mb-6">
                 {crisis.description}
               </p>
 
-              {/* Active Crisis Vital Status HUD (7 Key Operational Metrics) */}
-              <div className="p-4 rounded-lg bg-surface-2/80 border border-hairline mb-6">
-                <div className="flex flex-wrap items-center justify-between gap-2 pb-2.5 mb-3 border-b border-hairline">
-                  <div className="flex items-center gap-2 text-xs font-mono font-semibold uppercase text-ink">
-                    <span className="w-2 h-2 rounded-full bg-semantic-success animate-pulse" />
-                    <span>Active Crisis Live Telemetry Feed</span>
-                  </div>
-                  <span className="text-[11px] font-mono text-ink-subtle flex items-center gap-1">
-                    🔄 Last Updated: <strong className="text-ink font-semibold">{crisis.lastUpdated}</strong>
-                  </span>
+              {/* 6 Key Incident Metrics */}
+              <div className="mb-6">
+                <div className="text-xs font-mono font-semibold uppercase text-muted mb-2">
+                  Incident Parameters
                 </div>
-
-                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2.5 font-mono text-xs">
-                  {/* 1. Status */}
-                  <div className="p-2.5 rounded bg-canvas border border-hairline">
-                    <div className="text-[10px] text-ink-tertiary uppercase flex items-center gap-1">
-                      <span>🟢 Status</span>
-                    </div>
-                    <div className="text-emerald-400 font-semibold text-[11px] mt-1 truncate">
-                      {crisis.status}
-                    </div>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 font-mono text-xs">
+                  <div className="p-3 rounded-xl bg-surface-soft border border-hairline">
+                    <div className="text-[10px] text-body uppercase font-medium">Status</div>
+                    <div className="text-semantic-down font-semibold mt-0.5">{crisis.status}</div>
                   </div>
-
-                  {/* 2. Started */}
-                  <div className="p-2.5 rounded bg-canvas border border-hairline">
-                    <div className="text-[10px] text-ink-tertiary uppercase flex items-center gap-1">
-                      <span>🕐 Started</span>
-                    </div>
-                    <div className="text-ink font-semibold text-[11px] mt-1">
-                      {crisis.started}
-                    </div>
+                  <div className="p-3 rounded-xl bg-surface-soft border border-hairline">
+                    <div className="text-[10px] text-body uppercase font-medium">Started</div>
+                    <div className="text-ink font-semibold mt-0.5">{crisis.started}</div>
                   </div>
-
-                  {/* 3. Severity */}
-                  <div className="p-2.5 rounded bg-canvas border border-hairline">
-                    <div className="text-[10px] text-ink-tertiary uppercase flex items-center gap-1">
-                      <span>📈 Severity</span>
-                    </div>
-                    <div className="text-red-400 font-semibold text-[11px] mt-1">
-                      {crisis.severity}
-                    </div>
+                  <div className="p-3 rounded-xl bg-surface-soft border border-hairline">
+                    <div className="text-[10px] text-body uppercase font-medium">Severity</div>
+                    <div className="text-semantic-down font-semibold mt-0.5">{crisis.severity}</div>
                   </div>
-
-                  {/* 4. People Affected */}
-                  <div className="p-2.5 rounded bg-canvas border border-hairline">
-                    <div className="text-[10px] text-ink-tertiary uppercase flex items-center gap-1">
-                      <span>👥 People Affected</span>
-                    </div>
-                    <div className="text-ink font-semibold text-[11px] mt-1">
-                      {crisis.peopleAffected}
-                    </div>
+                  <div className="p-3 rounded-xl bg-surface-soft border border-hairline">
+                    <div className="text-[10px] text-body uppercase font-medium">People Affected</div>
+                    <div className="text-ink font-semibold mt-0.5">{crisis.peopleAffected}</div>
                   </div>
-
-                  {/* 5. Immediate Aid Required */}
-                  <div className="p-2.5 rounded bg-canvas border border-hairline">
-                    <div className="text-[10px] text-ink-tertiary uppercase flex items-center gap-1">
-                      <span>🚨 Immediate Aid</span>
-                    </div>
-                    <div className="text-primary font-semibold text-[11px] mt-1">
-                      {crisis.immediateAidRequired}
-                    </div>
+                  <div className="p-3 rounded-xl bg-surface-soft border border-hairline">
+                    <div className="text-[10px] text-body uppercase font-medium">Immediate Aid</div>
+                    <div className="text-primary font-semibold mt-0.5">{crisis.immediateAidRequired}</div>
                   </div>
-
-                  {/* 6. Affected Area */}
-                  <div className="p-2.5 rounded bg-canvas border border-hairline">
-                    <div className="text-[10px] text-ink-tertiary uppercase flex items-center gap-1">
-                      <span>🗺️ Affected Area</span>
-                    </div>
-                    <div className="text-ink font-semibold text-[11px] mt-1 truncate">
-                      {crisis.affectedArea}
-                    </div>
+                  <div className="p-3 rounded-xl bg-surface-soft border border-hairline">
+                    <div className="text-[10px] text-body uppercase font-medium">Affected Area</div>
+                    <div className="text-ink font-semibold mt-0.5 truncate">{crisis.affectedArea}</div>
                   </div>
                 </div>
               </div>
 
               {/* Progress Bar */}
-              <div className="space-y-1.5 mb-6 pt-4 border-t border-hairline">
+              <div className="space-y-2 mb-6 pt-4 border-t border-hairline">
                 <div className="flex items-center justify-between text-xs font-mono">
-                  <span className="text-ink-subtle">Aggregated Liquidity Vault:</span>
+                  <span className="text-body">Aggregated Liquidity Vault:</span>
                   <span className="text-ink font-semibold">${crisis.raisedUSD.toLocaleString()} / ${crisis.targetUSD.toLocaleString()} ({percent}%)</span>
                 </div>
-                <div className="w-full h-2 bg-surface-3 rounded-pill overflow-hidden">
+                <div className="w-full h-2 bg-surface-strong rounded-full overflow-hidden">
                   <div
-                    className="h-full bg-primary rounded-pill transition-all duration-700"
+                    className="h-full bg-primary rounded-full transition-all duration-700"
                     style={{ width: `${percent}%` }}
                   ></div>
                 </div>
-                <div className="flex items-center justify-between text-[11px] font-mono text-ink-tertiary">
+                <div className="flex items-center justify-between text-xs font-mono text-muted">
                   <span>${crisis.disbursedUSD.toLocaleString()} Disbursed</span>
                   <span>{crisis.victimsVerified.toLocaleString()} Verified Beneficiaries</span>
                 </div>
@@ -348,37 +316,37 @@ export default function CrisisPage({ params }: { params: { id: string } }) {
 
               {/* On-Chain Vault Contract Addresses */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-4 border-t border-hairline font-mono text-xs">
-                <div className="p-2.5 rounded bg-canvas border border-hairline flex items-center justify-between">
+                <div className="p-3 rounded-xl bg-surface-soft border border-hairline flex items-center justify-between">
                   <div>
-                    <div className="text-[10px] text-ink-tertiary">ETH SEPOLIA VAULT</div>
-                    <div className="text-ink-muted text-[11px] truncate max-w-[180px]">{crisis.vaultAddresses.sepolia}</div>
+                    <div className="text-[10px] text-muted">ETH SEPOLIA VAULT</div>
+                    <div className="text-ink text-xs truncate max-w-[180px] font-mono">{crisis.vaultAddresses.sepolia}</div>
                   </div>
                   <button
                     onClick={() => copyToClipboard(crisis.vaultAddresses.sepolia, "sepolia")}
-                    className="p-1 text-ink-subtle hover:text-ink"
+                    className="p-1.5 text-muted hover:text-ink rounded-full hover:bg-white"
                     title="Copy Address"
                   >
-                    {copiedAddress === "sepolia" ? <CheckCircle2 className="w-3.5 h-3.5 text-semantic-success" /> : <Copy className="w-3.5 h-3.5" />}
+                    {copiedAddress === "sepolia" ? <CheckCircle2 className="w-4 h-4 text-semantic-up" /> : <Copy className="w-4 h-4" />}
                   </button>
                 </div>
 
-                <div className="p-2.5 rounded bg-canvas border border-hairline flex items-center justify-between">
+                <div className="p-3 rounded-xl bg-surface-soft border border-hairline flex items-center justify-between">
                   <div>
-                    <div className="text-[10px] text-ink-tertiary">POLYGON AMOY VAULT</div>
-                    <div className="text-primary text-[11px] truncate max-w-[180px]">{crisis.vaultAddresses.amoy}</div>
+                    <div className="text-[10px] text-muted">POLYGON AMOY VAULT</div>
+                    <div className="text-primary text-xs truncate max-w-[180px] font-mono">{crisis.vaultAddresses.amoy}</div>
                   </div>
                   <button
                     onClick={() => copyToClipboard(crisis.vaultAddresses.amoy, "amoy")}
-                    className="p-1 text-ink-subtle hover:text-ink"
+                    className="p-1.5 text-muted hover:text-ink rounded-full hover:bg-white"
                     title="Copy Address"
                   >
-                    {copiedAddress === "amoy" ? <CheckCircle2 className="w-3.5 h-3.5 text-semantic-success" /> : <Copy className="w-3.5 h-3.5" />}
+                    {copiedAddress === "amoy" ? <CheckCircle2 className="w-4 h-4 text-semantic-up" /> : <Copy className="w-4 h-4" />}
                   </button>
                 </div>
               </div>
             </div>
 
-            {/* LARGE INTERACTIVE LIVE CRISIS MAP */}
+            {/* LIVE CRISIS MAP */}
             <LiveCrisisMap 
               crisisId={crisis.id} 
               crisisTitle={crisis.title} 
@@ -386,115 +354,115 @@ export default function CrisisPage({ params }: { params: { id: string } }) {
             />
 
             {/* Live Telemetry & AI Severity Monitor */}
-            <div className="p-6 rounded-lg bg-surface-1 border border-hairline space-y-4">
+            <div className="p-6 rounded-2xl bg-white border border-hairline space-y-4">
               <div className="flex items-center justify-between pb-3 border-b border-hairline">
                 <div className="flex items-center gap-2">
                   <Radio className="w-4 h-4 text-primary" />
-                  <span className="text-xs font-semibold uppercase font-mono text-ink">Live Sensor Feeds & AI Telemetry</span>
+                  <span className="text-xs font-semibold uppercase text-ink">Live Sensor Feeds & AI Telemetry</span>
                 </div>
-                <span className="text-[10px] font-mono px-2 py-0.5 rounded-pill bg-surface-2 text-semantic-success border border-semantic-success/30 flex items-center gap-1">
-                  <span className="w-1.5 h-1.5 rounded-full bg-semantic-success animate-pulse"></span>
+                <span className="text-[10px] font-semibold px-2.5 py-0.5 rounded-full bg-emerald-50 text-semantic-up border border-emerald-200 flex items-center gap-1">
+                  <span className="w-1.5 h-1.5 rounded-full bg-semantic-up animate-pulse"></span>
                   {crisis.telemetry.sensorStatus}
                 </span>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs font-mono">
-                <div className="p-3 rounded bg-canvas border border-hairline">
-                  <div className="text-[10px] text-ink-tertiary uppercase">Sensor Station:</div>
-                  <div className="text-ink-muted mt-0.5">{crisis.telemetry.sensorStation}</div>
+                <div className="p-3 rounded-xl bg-surface-soft border border-hairline">
+                  <div className="text-[10px] text-muted uppercase">Sensor Station:</div>
+                  <div className="text-ink mt-0.5">{crisis.telemetry.sensorStation}</div>
                 </div>
-                <div className="p-3 rounded bg-canvas border border-hairline">
-                  <div className="text-[10px] text-ink-tertiary uppercase">Primary Metric:</div>
-                  <div className="text-red-400 font-medium mt-0.5">{crisis.telemetry.primaryMetric}</div>
+                <div className="p-3 rounded-xl bg-surface-soft border border-hairline">
+                  <div className="text-[10px] text-muted uppercase">Primary Metric:</div>
+                  <div className="text-semantic-down font-medium mt-0.5">{crisis.telemetry.primaryMetric}</div>
                 </div>
               </div>
 
               {/* Gemini 2.5 Flash Damage Assessment */}
-              <div className="p-4 rounded bg-canvas border border-hairline text-xs space-y-3">
-                <div className="flex items-center justify-between pb-2 border-b border-hairline font-mono">
+              <div className="p-4 rounded-xl bg-surface-soft border border-hairline text-xs space-y-3">
+                <div className="flex items-center justify-between pb-2 border-b border-hairline">
                   <span className="text-ink font-semibold flex items-center gap-1.5">
                     <Cpu className="w-3.5 h-3.5 text-primary" /> Gemini 2.5 Flash Damage Verification
                   </span>
-                  <span className="text-primary text-[10px]">Model: gemini-2.5-flash</span>
+                  <span className="text-primary text-[10px] font-mono">Model: gemini-2.5-flash</span>
                 </div>
 
-                <div className="grid grid-cols-3 gap-2 font-mono text-[11px]">
-                  <div className="p-2 rounded bg-surface-1 border border-hairline">
-                    <div className="text-ink-tertiary text-[10px]">COLLAPSE:</div>
+                <div className="grid grid-cols-3 gap-2 font-mono text-xs">
+                  <div className="p-2.5 rounded-lg bg-white border border-hairline">
+                    <div className="text-muted text-[10px]">COLLAPSE:</div>
                     <div className="text-ink font-semibold mt-0.5">{crisis.aiDamageReport.structuralCollapsePct}%</div>
                   </div>
-                  <div className="p-2 rounded bg-surface-1 border border-hairline">
-                    <div className="text-ink-tertiary text-[10px]">BLOCKAGE:</div>
+                  <div className="p-2.5 rounded-lg bg-white border border-hairline">
+                    <div className="text-muted text-[10px]">BLOCKAGE:</div>
                     <div className="text-ink font-semibold mt-0.5">{crisis.aiDamageReport.roadBlockagePct}%</div>
                   </div>
-                  <div className="p-2 rounded bg-surface-1 border border-hairline">
-                    <div className="text-ink-tertiary text-[10px]">TRIAGE:</div>
-                    <div className="text-red-400 font-semibold mt-0.5 truncate">{crisis.aiDamageReport.triageUrgency}</div>
+                  <div className="p-2.5 rounded-lg bg-white border border-hairline">
+                    <div className="text-muted text-[10px]">TRIAGE:</div>
+                    <div className="text-semantic-down font-semibold mt-0.5 truncate">{crisis.aiDamageReport.triageUrgency}</div>
                   </div>
                 </div>
 
-                <p className="text-xs text-ink-subtle leading-relaxed">
+                <p className="text-xs text-body leading-relaxed">
                   {crisis.aiDamageReport.geminiAssessment}
                 </p>
               </div>
             </div>
 
             {/* Category Blueprint Breakdown */}
-            <div className="p-6 rounded-lg bg-surface-1 border border-hairline">
-              <h3 className="text-xs font-mono uppercase tracking-wider text-ink-subtle mb-3">Category Allocation Blueprint</h3>
+            <div className="p-6 rounded-2xl bg-white border border-hairline">
+              <h3 className="text-xs font-semibold uppercase tracking-wider text-body mb-3">Category Allocation Blueprint</h3>
               <div className="grid grid-cols-3 gap-3 font-mono text-xs">
-                <div className="p-3 rounded-md bg-canvas border border-hairline">
-                  <div className="text-ink-tertiary text-[10px]">MEDICAL CARE</div>
-                  <div className="text-base text-ink font-bold mt-1">40%</div>
-                  <div className="text-[10px] text-ink-subtle mt-0.5">Trauma kits & surgery</div>
+                <div className="p-4 rounded-xl bg-surface-soft border border-hairline">
+                  <div className="text-muted text-[10px]">MEDICAL CARE</div>
+                  <div className="text-lg text-ink font-bold mt-1">40%</div>
+                  <div className="text-xs text-body mt-0.5">Trauma kits & surgery</div>
                 </div>
-                <div className="p-3 rounded-md bg-canvas border border-hairline">
-                  <div className="text-ink-tertiary text-[10px]">FOOD RATIONS</div>
-                  <div className="text-base text-primary font-bold mt-1">30%</div>
-                  <div className="text-[10px] text-ink-subtle mt-0.5">Water & dry meals</div>
+                <div className="p-4 rounded-xl bg-surface-soft border border-hairline">
+                  <div className="text-muted text-[10px]">FOOD RATIONS</div>
+                  <div className="text-lg text-primary font-bold mt-1">30%</div>
+                  <div className="text-xs text-body mt-0.5">Water & dry meals</div>
                 </div>
-                <div className="p-3 rounded-md bg-canvas border border-hairline">
-                  <div className="text-ink-tertiary text-[10px]">EMERGENCY SHELTER</div>
-                  <div className="text-base text-semantic-success font-bold mt-1">30%</div>
-                  <div className="text-[10px] text-ink-subtle mt-0.5">Thermal pods & blankets</div>
+                <div className="p-4 rounded-xl bg-surface-soft border border-hairline">
+                  <div className="text-muted text-[10px]">EMERGENCY SHELTER</div>
+                  <div className="text-lg text-semantic-up font-bold mt-1">30%</div>
+                  <div className="text-xs text-body mt-0.5">Thermal pods & blankets</div>
                 </div>
               </div>
             </div>
           </div>
 
           {/* Donation Terminal Box (1 Col) */}
-          <div id="donation-terminal" className="p-6 rounded-lg bg-surface-1 border border-hairline flex flex-col justify-between h-fit sticky top-20">
+          <div id="donation-terminal" className="p-6 rounded-2xl bg-white border border-hairline flex flex-col justify-between h-fit sticky top-20 shadow-card">
             <div>
               <div className="flex items-center justify-between pb-3 border-b border-hairline mb-5">
                 <div className="flex items-center gap-2">
                   <HeartHandshake className="w-4 h-4 text-primary" />
                   <span className="font-semibold text-ink text-sm">Donation Terminal</span>
                 </div>
-                <span className="text-[10px] font-mono text-semantic-success flex items-center gap-1">
-                  <span className="w-1.5 h-1.5 rounded-full bg-semantic-success animate-pulse"></span> Instant Block
+                <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-emerald-50 text-semantic-up border border-emerald-200 flex items-center gap-1">
+                  <span className="w-1.5 h-1.5 rounded-full bg-semantic-up animate-pulse"></span> Instant Block
                 </span>
               </div>
 
               {/* Chain Selector */}
               <div className="space-y-1.5 mb-4">
-                <label className="text-[11px] font-mono text-ink-subtle">SELECT NETWORK</label>
+                <label className="text-xs font-semibold text-body">SELECT NETWORK</label>
                 <div className="grid grid-cols-2 gap-2">
                   <button
                     onClick={() => setSelectedChain("amoy")}
-                    className={`py-1.5 px-3 rounded-md text-xs font-mono border transition-colors ${
+                    className={`py-2 px-3 rounded-full text-xs font-mono font-medium border transition-colors ${
                       selectedChain === "amoy" 
-                        ? "bg-surface-3 text-ink border-primary font-medium" 
-                        : "bg-surface-2 text-ink-subtle border-hairline hover:text-ink"
+                        ? "bg-primary text-white border-primary font-semibold" 
+                        : "bg-surface-soft text-body border-hairline hover:text-ink"
                     }`}
                   >
                     Polygon Amoy (POL)
                   </button>
                   <button
                     onClick={() => setSelectedChain("sepolia")}
-                    className={`py-1.5 px-3 rounded-md text-xs font-mono border transition-colors ${
+                    className={`py-2 px-3 rounded-full text-xs font-mono font-medium border transition-colors ${
                       selectedChain === "sepolia" 
-                        ? "bg-surface-3 text-ink border-primary font-medium" 
-                        : "bg-surface-2 text-ink-subtle border-hairline hover:text-ink"
+                        ? "bg-primary text-white border-primary font-semibold" 
+                        : "bg-surface-soft text-body border-hairline hover:text-ink"
                     }`}
                   >
                     Eth Sepolia (ETH)
@@ -504,25 +472,25 @@ export default function CrisisPage({ params }: { params: { id: string } }) {
 
               {/* Amount Input */}
               <div className="space-y-1.5 mb-4">
-                <div className="flex items-center justify-between text-[11px] font-mono text-ink-subtle">
-                  <label>AMOUNT ({selectedChain === "amoy" ? "POL" : "ETH"})</label>
+                <div className="flex items-center justify-between text-xs font-mono text-body">
+                  <label className="font-semibold">AMOUNT ({selectedChain === "amoy" ? "POL" : "ETH"})</label>
                   <span>≈ ${(Number(donationAmount || 0) * (selectedChain === "amoy" ? 0.65 : 2750)).toLocaleString()} USD</span>
                 </div>
                 <input
                   type="number"
                   value={donationAmount}
                   onChange={(e) => setDonationAmount(e.target.value)}
-                  className="w-full bg-canvas border border-hairline focus:border-primary text-ink px-3 py-2 rounded-md text-base font-mono focus:outline-none"
+                  className="w-full bg-white border border-hairline focus:border-primary text-ink px-4 py-2.5 rounded-xl text-base font-mono focus:outline-none"
                 />
 
                 {/* Preset Chips */}
-                <div className="flex items-center gap-1.5 pt-1 font-mono text-[10px]">
+                <div className="flex items-center gap-1.5 pt-1 font-mono text-xs">
                   {["25", "50", "100", "250"].map((preset) => (
                     <button
                       key={preset}
                       type="button"
                       onClick={() => setDonationAmount(preset)}
-                      className="px-2 py-0.5 rounded bg-surface-2 border border-hairline hover:border-hairline-strong text-ink-muted hover:text-ink transition-colors"
+                      className="px-3 py-1 rounded-full bg-surface-soft border border-hairline hover:bg-surface-strong text-body hover:text-ink transition-colors"
                     >
                       +{preset}
                     </button>
@@ -532,39 +500,39 @@ export default function CrisisPage({ params }: { params: { id: string } }) {
 
               {/* Category Lock Selector */}
               <div className="space-y-1.5 mb-5">
-                <label className="text-[11px] font-mono text-ink-subtle">DESIGNATE AID CATEGORY</label>
+                <label className="text-xs font-semibold text-body">AID CATEGORY</label>
                 <select
                   value={category}
                   onChange={(e) => setCategory(e.target.value)}
-                  className="w-full bg-canvas border border-hairline text-ink px-2.5 py-1.5 rounded-md text-xs font-mono focus:outline-none"
+                  className="w-full bg-white border border-hairline text-ink px-3 py-2 rounded-xl text-xs font-mono focus:outline-none"
                 >
                   <option value="general">General Relief Pool (Auto-Balance)</option>
-                  <option value="medical">Medical & Field Trauma</option>
-                  <option value="food">Food Rations & Clean Water</option>
-                  <option value="shelter">Emergency Winter Shelter</option>
+                  <option value="medical">Medical & Field Trauma (40%)</option>
+                  <option value="food">Food Rations & Clean Water (30%)</option>
+                  <option value="shelter">Emergency Winter Shelter (30%)</option>
                 </select>
               </div>
 
-              <div className="p-3 rounded bg-canvas border border-hairline text-[11px] font-mono text-ink-tertiary space-y-1 mb-5">
+              <div className="p-3 rounded-xl bg-surface-soft border border-hairline text-xs font-mono text-body space-y-1 mb-5">
                 <div className="flex items-center justify-between">
                   <span>Protocol Fee:</span>
-                  <span className="text-semantic-success font-medium">0.00% (Zero Middleman)</span>
+                  <span className="text-semantic-up font-semibold">0.00% (Zero Middleman)</span>
                 </div>
                 <div className="flex items-center justify-between">
                   <span>Audit Trail:</span>
-                  <span className="text-ink-muted">Glass-Box Visual Flow</span>
+                  <span className="text-ink">Glass-Box Visual Flow</span>
                 </div>
               </div>
             </div>
 
             {/* Execute Button / Receipt */}
             {txSuccess ? (
-              <div className="p-4 rounded-md bg-surface-2 border border-semantic-success/30 text-semantic-success text-center font-mono text-xs space-y-2">
+              <div className="p-4 rounded-xl bg-emerald-50 border border-emerald-200 text-semantic-up text-center font-mono text-xs space-y-2">
                 <div className="flex items-center justify-center gap-1.5 font-bold">
                   <CheckCircle2 className="w-4 h-4" /> Transaction Confirmed
                 </div>
-                <div className="text-[10px] text-ink-subtle">Hash: 0x9f1a...4b22 (Polygon Amoy #842109)</div>
-                <Link href="/audit" className="inline-block text-primary hover:underline text-[11px] pt-1">
+                <div className="text-xs text-body">Hash: 0x9f1a...4b22 (Polygon Amoy #842109)</div>
+                <Link href="/audit" className="inline-block text-primary hover:underline text-xs pt-1 font-semibold">
                   Inspect in Live Audit Ledger →
                 </Link>
               </div>
@@ -572,13 +540,13 @@ export default function CrisisPage({ params }: { params: { id: string } }) {
               <button
                 onClick={handleDonate}
                 disabled={donating}
-                className="w-full py-2.5 px-4 rounded-md bg-primary hover:bg-primary-hover active:bg-primary-focus text-white text-xs font-medium tracking-button transition-colors flex items-center justify-center gap-2"
+                className="w-full py-3 px-4 rounded-full bg-primary hover:bg-primary-hover active:bg-primary-active text-white text-sm font-semibold transition-colors flex items-center justify-center gap-2 shadow-sm"
               >
                 {donating ? (
                   <span className="font-mono text-xs animate-pulse">Broadcasting Tx to {selectedChain}...</span>
                 ) : (
                   <>
-                    <Zap className="w-3.5 h-3.5" />
+                    <Zap className="w-4 h-4" />
                     <span>Execute Emergency Donation</span>
                   </>
                 )}
