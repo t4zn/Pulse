@@ -40,26 +40,42 @@ const CRISIS_OPTIONS = [
   {
     id: "turkey-earthquake-2026",
     numericId: 1,
-    title: "Turkey-Syria Earthquake 2026",
+    title: "Turkey-Syria Earthquake",
     amount: "150",
     currency: "USDC",
     location: "Kahramanmaraş, Turkey",
   },
   {
-    id: "pakistan-floods-2026",
+    id: "kerala-flood-2026",
     numericId: 2,
-    title: "Pakistan Monsoon Inundation",
+    title: "Wayanad Floods",
     amount: "100",
     currency: "USDC",
-    location: "Sindh & Balochistan",
+    location: "Kerala, India",
   },
   {
-    id: "horn-africa-drought-2026",
+    id: "horn-of-africa-2026",
     numericId: 3,
-    title: "Horn of Africa Emergency Reserve",
+    title: "Horn of Africa Drought",
     amount: "75",
     currency: "USDC",
-    location: "Somalia & Eastern Kenya",
+    location: "Somalia & Ethiopia",
+  },
+  {
+    id: "morocco-earthquake-2026",
+    numericId: 4,
+    title: "Morocco Earthquake",
+    amount: "150",
+    currency: "USDC",
+    location: "Al Haouz, Morocco",
+  },
+  {
+    id: "libya-flood-2026",
+    numericId: 5,
+    title: "Libya Derna Floods",
+    amount: "125",
+    currency: "USDC",
+    location: "Derna, Libya",
   },
 ];
 
@@ -348,12 +364,6 @@ export default function BeneficiaryPage() {
                   )}
                 </button>
               )}
-
-              {/* Minimal Footer Note */}
-              <div className="flex items-center justify-between text-[11px] text-[#64748B] pt-1 px-1">
-                <span>Polygon Amoy Testnet</span>
-                <span className="text-emerald-600 font-medium">Gas: $0.00 (Sponsored)</span>
-              </div>
             </form>
           ) : (
             /* Confirmed Receipt View */
