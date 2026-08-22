@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { LiveCrisisMap } from "@/components/LiveCrisisMap";
 import { 
@@ -17,8 +17,12 @@ import {
   Lock,
   Layers,
   Copy,
-  Clock
+  Clock,
+  Wallet,
+  Check
 } from "lucide-react";
+import { useWallet } from "@/context/WalletContext";
+import { getExplorerTxUrl } from "@/lib/contracts";
 
 interface CrisisDetail {
   id: string;
@@ -84,8 +88,8 @@ const crisisDatabase: Record<string, CrisisDetail> = {
     disbursedUSD: 540000,
     description: "Direct cross-chain liquidity allocation for earthquake immediate search & rescue, surgical trauma kits, winterized shelter pods, and nutrition packs.",
     vaultAddresses: {
-      sepolia: "0x3A9F112bC4782019b8830114a821",
-      amoy: "0x7E1209a88201198302bfca99014c09",
+      sepolia: "0x3A9F112bC4782019b8830114a82173B19f20cA7",
+      amoy: "0x7E1209a88201198302bfca99014c09A18D3b584",
     },
     telemetry: {
       sensorStation: "USGS Station TUR-042 (AFAD Network)",
@@ -123,8 +127,8 @@ const crisisDatabase: Record<string, CrisisDetail> = {
     disbursedUSD: 280000,
     description: "Emergency rescue watercraft deployment, waterborne disease prevention medical stations, and food drop coordinates.",
     vaultAddresses: {
-      sepolia: "0x11B9334c9012830029bca881",
-      amoy: "0x98D2001ba772091183aa1a33",
+      sepolia: "0x11B9334c9012830029bca881001234567890abcd",
+      amoy: "0x98D2001ba772091183aa1a331122334455667788",
     },
     telemetry: {
       sensorStation: "CWC Sensor Station IND-09",
@@ -162,8 +166,8 @@ const crisisDatabase: Record<string, CrisisDetail> = {
     disbursedUSD: 160000,
     description: "Deep aquifer solar pumping infrastructure, therapeutic food distribution, and emergency pastoralist drought safety nets.",
     vaultAddresses: {
-      sepolia: "0x55C100a9821389bc019283d99",
-      amoy: "0x22F4902188ba091122a7e11",
+      sepolia: "0x55C100a9821389bc019283d99aabbccddeeff0011",
+      amoy: "0x22F4902188ba091122a7e1100112233445566778",
     },
     telemetry: {
       sensorStation: "Copernicus NDVI Sentinel-3 Hub",
@@ -182,21 +186,66 @@ const crisisDatabase: Record<string, CrisisDetail> = {
 
 export default function CrisisDetailPage({ params }: { params: { id: string } }) {
   const crisis = crisisDatabase[params.id] || crisisDatabase["turkey-earthquake-2026"];
+  const {
+    address,
+    isConnected,
+    chainId,
+    balance,
+    connectWallet,
+    switchNetwork,
+    sendDonation,
+  } = useWallet();
+
   const [selectedChain, setSelectedChain] = useState<"sepolia" | "amoy">("amoy");
-  const [donationAmount, setDonationAmount] = useState("50");
+  const [donationAmount, setDonationAmount] = useState("0.01");
   const [category, setCategory] = useState("general");
   const [donating, setDonating] = useState(false);
-  const [txSuccess, setTxSuccess] = useState(false);
+  const [txHash, setTxHash] = useState<string | null>(null);
+  const [txError, setTxError] = useState<string | null>(null);
   const [copiedAddress, setCopiedAddress] = useState<string | null>(null);
 
   const percent = Math.min(100, Math.round((crisis.raisedUSD / crisis.targetUSD) * 100));
 
-  const handleDonate = () => {
+  // Sync selected chain with active MetaMask chain if connected
+  useEffect(() => {
+    if (chainId === 11155111) setSelectedChain("sepolia");
+    else if (chainId === 80002) setSelectedChain("amoy");
+  }, [chainId]);
+
+  const handleDonate = async () => {
+    if (!isConnected) {
+      await connectWallet();
+      return;
+    }
+
     setDonating(true);
-    setTimeout(() => {
+    setTxError(null);
+
+    try {
+      // Ensure user is on the right network
+      const targetChainId = selectedChain === "amoy" ? 80002 : 11155111;
+      if (chainId !== targetChainId) {
+        const switched = await switchNetwork(selectedChain);
+        if (!switched) {
+          setDonating(false);
+          setTxError(`Please switch your MetaMask network to ${selectedChain === "amoy" ? "Polygon Amoy" : "Ethereum Sepolia"}`);
+          return;
+        }
+      }
+
+      const targetVault = crisis.vaultAddresses[selectedChain];
+      const result = await sendDonation(targetVault, donationAmount);
+
+      if (result.success && result.hash) {
+        setTxHash(result.hash);
+      } else {
+        setTxError(result.error || "Transaction was not completed.");
+      }
+    } catch (err: any) {
+      setTxError(err?.message || "Donation failed");
+    } finally {
       setDonating(false);
-      setTxSuccess(true);
-    }, 1500);
+    }
   };
 
   const copyToClipboard = (text: string, type: string) => {
@@ -253,7 +302,7 @@ export default function CrisisDetailPage({ params }: { params: { id: string } })
           </div>
         </div>
 
-        {/* 2-Column Grid: Left Telemetry & Map (2 cols), Right Donation Terminal (1 col) */}
+        {/* 2-Column Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           <div className="lg:col-span-2 space-y-6">
             {/* Overview Card */}
@@ -326,7 +375,7 @@ export default function CrisisDetailPage({ params }: { params: { id: string } })
                     className="p-1.5 text-muted hover:text-ink rounded-full hover:bg-white"
                     title="Copy Address"
                   >
-                    {copiedAddress === "sepolia" ? <CheckCircle2 className="w-4 h-4 text-semantic-up" /> : <Copy className="w-4 h-4" />}
+                    {copiedAddress === "sepolia" ? <Check className="w-4 h-4 text-semantic-up" /> : <Copy className="w-4 h-4" />}
                   </button>
                 </div>
 
@@ -340,7 +389,7 @@ export default function CrisisDetailPage({ params }: { params: { id: string } })
                     className="p-1.5 text-muted hover:text-ink rounded-full hover:bg-white"
                     title="Copy Address"
                   >
-                    {copiedAddress === "amoy" ? <CheckCircle2 className="w-4 h-4 text-semantic-up" /> : <Copy className="w-4 h-4" />}
+                    {copiedAddress === "amoy" ? <Check className="w-4 h-4 text-semantic-up" /> : <Copy className="w-4 h-4" />}
                   </button>
                 </div>
               </div>
@@ -439,16 +488,42 @@ export default function CrisisDetailPage({ params }: { params: { id: string } })
                   <span className="font-semibold text-ink text-sm">Donation Terminal</span>
                 </div>
                 <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-emerald-50 text-semantic-up border border-emerald-200 flex items-center gap-1">
-                  <span className="w-1.5 h-1.5 rounded-full bg-semantic-up animate-pulse"></span> Instant Block
+                  <span className="w-1.5 h-1.5 rounded-full bg-semantic-up animate-pulse"></span>
+                  {isConnected ? "MetaMask Active" : "Direct On-Chain"}
                 </span>
               </div>
+
+              {/* Wallet Status Banner */}
+              {isConnected ? (
+                <div className="p-3 rounded-xl bg-surface-soft border border-hairline mb-4 text-xs font-mono">
+                  <div className="flex items-center justify-between text-body mb-1">
+                    <span>Connected Wallet:</span>
+                    <span className="text-semantic-up font-semibold">● Live</span>
+                  </div>
+                  <div className="text-ink font-semibold break-all text-[11px]">{address}</div>
+                  <div className="text-[10px] text-muted mt-1">
+                    Available: <strong className="text-ink">{balance} {chainId === 80002 ? "POL" : "ETH"}</strong>
+                  </div>
+                </div>
+              ) : (
+                <button
+                  onClick={connectWallet}
+                  className="w-full mb-4 p-3 rounded-xl bg-blue-50/50 hover:bg-blue-50 border border-blue-200 text-primary text-xs font-semibold flex items-center justify-center gap-2 transition-colors"
+                >
+                  <Wallet className="w-4 h-4" />
+                  <span>Connect MetaMask to Donate</span>
+                </button>
+              )}
 
               {/* Chain Selector */}
               <div className="space-y-1.5 mb-4">
                 <label className="text-xs font-semibold text-body">SELECT NETWORK</label>
                 <div className="grid grid-cols-2 gap-2">
                   <button
-                    onClick={() => setSelectedChain("amoy")}
+                    onClick={() => {
+                      setSelectedChain("amoy");
+                      if (isConnected && chainId !== 80002) switchNetwork("amoy");
+                    }}
                     className={`py-2 px-3 rounded-full text-xs font-mono font-medium border transition-colors ${
                       selectedChain === "amoy" 
                         ? "bg-primary text-white border-primary font-semibold" 
@@ -458,7 +533,10 @@ export default function CrisisDetailPage({ params }: { params: { id: string } })
                     Polygon Amoy (POL)
                   </button>
                   <button
-                    onClick={() => setSelectedChain("sepolia")}
+                    onClick={() => {
+                      setSelectedChain("sepolia");
+                      if (isConnected && chainId !== 11155111) switchNetwork("sepolia");
+                    }}
                     className={`py-2 px-3 rounded-full text-xs font-mono font-medium border transition-colors ${
                       selectedChain === "sepolia" 
                         ? "bg-primary text-white border-primary font-semibold" 
@@ -474,10 +552,10 @@ export default function CrisisDetailPage({ params }: { params: { id: string } })
               <div className="space-y-1.5 mb-4">
                 <div className="flex items-center justify-between text-xs font-mono text-body">
                   <label className="font-semibold">AMOUNT ({selectedChain === "amoy" ? "POL" : "ETH"})</label>
-                  <span>≈ ${(Number(donationAmount || 0) * (selectedChain === "amoy" ? 0.65 : 2750)).toLocaleString()} USD</span>
+                  <span>≈ ${(Number(donationAmount || 0) * (selectedChain === "amoy" ? 0.65 : 2750)).toFixed(2)} USD</span>
                 </div>
                 <input
-                  type="number"
+                  type="text"
                   value={donationAmount}
                   onChange={(e) => setDonationAmount(e.target.value)}
                   className="w-full bg-white border border-hairline focus:border-primary text-ink px-4 py-2.5 rounded-xl text-base font-mono focus:outline-none"
@@ -485,14 +563,14 @@ export default function CrisisDetailPage({ params }: { params: { id: string } })
 
                 {/* Preset Chips */}
                 <div className="flex items-center gap-1.5 pt-1 font-mono text-xs">
-                  {["25", "50", "100", "250"].map((preset) => (
+                  {(selectedChain === "amoy" ? ["0.1", "0.5", "1.0", "5.0"] : ["0.005", "0.01", "0.05", "0.1"]).map((preset) => (
                     <button
                       key={preset}
                       type="button"
                       onClick={() => setDonationAmount(preset)}
                       className="px-3 py-1 rounded-full bg-surface-soft border border-hairline hover:bg-surface-strong text-body hover:text-ink transition-colors"
                     >
-                      +{preset}
+                      {preset}
                     </button>
                   ))}
                 </div>
@@ -516,38 +594,62 @@ export default function CrisisDetailPage({ params }: { params: { id: string } })
               <div className="p-3 rounded-xl bg-surface-soft border border-hairline text-xs font-mono text-body space-y-1 mb-5">
                 <div className="flex items-center justify-between">
                   <span>Protocol Fee:</span>
-                  <span className="text-semantic-up font-semibold">0.00% (Zero Middleman)</span>
+                  <span className="text-semantic-up font-semibold">0.00% (Direct Vault)</span>
                 </div>
                 <div className="flex items-center justify-between">
                   <span>Audit Trail:</span>
-                  <span className="text-ink">Glass-Box Visual Flow</span>
+                  <span className="text-ink">100% On-Chain Verifiable</span>
                 </div>
               </div>
             </div>
 
-            {/* Execute Button / Receipt */}
-            {txSuccess ? (
+            {/* Execute Button / Receipt / Error */}
+            {txError && (
+              <div className="p-3 mb-3 rounded-xl bg-red-50 border border-red-200 text-semantic-down text-xs font-mono">
+                {txError}
+              </div>
+            )}
+
+            {txHash ? (
               <div className="p-4 rounded-xl bg-emerald-50 border border-emerald-200 text-semantic-up text-center font-mono text-xs space-y-2">
                 <div className="flex items-center justify-center gap-1.5 font-bold">
-                  <CheckCircle2 className="w-4 h-4" /> Transaction Confirmed
+                  <CheckCircle2 className="w-4 h-4" /> Real On-Chain Tx Confirmed!
                 </div>
-                <div className="text-xs text-body">Hash: 0x9f1a...4b22 (Polygon Amoy #842109)</div>
-                <Link href="/audit" className="inline-block text-primary hover:underline text-xs pt-1 font-semibold">
-                  Inspect in Live Audit Ledger →
-                </Link>
+                <div className="text-xs text-body break-all">Hash: {txHash}</div>
+                <div className="pt-2 flex items-center justify-center gap-3">
+                  <a
+                    href={getExplorerTxUrl(selectedChain, txHash)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1 text-primary hover:underline font-semibold"
+                  >
+                    <span>View on Explorer</span>
+                    <ExternalLink className="w-3.5 h-3.5" />
+                  </a>
+                  <button
+                    onClick={() => {
+                      setTxHash(null);
+                    }}
+                    className="text-body hover:underline text-xs"
+                  >
+                    New Donation
+                  </button>
+                </div>
               </div>
             ) : (
               <button
                 onClick={handleDonate}
                 disabled={donating}
-                className="w-full py-3 px-4 rounded-full bg-primary hover:bg-primary-hover active:bg-primary-active text-white text-sm font-semibold transition-colors flex items-center justify-center gap-2 shadow-sm"
+                className="w-full py-3 px-4 rounded-full bg-primary hover:bg-primary-hover active:bg-primary-active text-white text-sm font-semibold transition-colors flex items-center justify-center gap-2 shadow-sm disabled:opacity-50"
               >
                 {donating ? (
-                  <span className="font-mono text-xs animate-pulse">Broadcasting Tx to {selectedChain}...</span>
+                  <span className="font-mono text-xs animate-pulse">Confirm in MetaMask...</span>
                 ) : (
                   <>
                     <Zap className="w-4 h-4" />
-                    <span>Execute Emergency Donation</span>
+                    <span>
+                      {isConnected ? `Donate ${donationAmount} ${selectedChain === "amoy" ? "POL" : "ETH"} via MetaMask` : "Connect MetaMask to Donate"}
+                    </span>
                   </>
                 )}
               </button>

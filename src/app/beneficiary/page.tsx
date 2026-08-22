@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useCallback, useRef, useMemo } from "react";
+import React, { useState, useCallback, useRef, useMemo, useEffect } from "react";
 import Link from "next/link";
 import {
   ArrowLeft,
@@ -21,6 +21,8 @@ import {
   GitBranch,
   Sparkles,
   Download,
+  Wallet,
+  Check,
 } from "lucide-react";
 import {
   buildMerkleTree,
@@ -33,6 +35,7 @@ import {
   type MerkleTreeData,
   type MerkleProofResult,
 } from "@/lib/merkle";
+import { useWallet } from "@/context/WalletContext";
 
 const DEMO_BENEFICIARIES = [
   "0x70997970C51812dc3A010C7d01b50e0d17dc79C8",
@@ -83,6 +86,8 @@ function copyToClipboard(text: string) {
 }
 
 export default function BeneficiaryPage() {
+  const { address: connectedAddress, isConnected, connectWallet, signClaimMessage } = useWallet();
+
   const [activeTab, setActiveTab] = useState<TabId>("claim");
 
   // Claim State
@@ -91,6 +96,8 @@ export default function BeneficiaryPage() {
   const [proofResult, setProofResult] = useState<MerkleProofResult | null>(null);
   const [showProofTree, setShowProofTree] = useState(false);
   const [claimTxHash, setClaimTxHash] = useState("");
+  const [realSignature, setRealSignature] = useState<string | null>(null);
+  const [claimError, setClaimError] = useState<string | null>(null);
 
   // NGO State
   const [ngoAddresses, setNgoAddresses] = useState<string[]>([]);
@@ -103,10 +110,26 @@ export default function BeneficiaryPage() {
   // Voucher State
   const [voucherGenerated, setVoucherGenerated] = useState(false);
 
-  const demoTree = useMemo(() => buildMerkleTree(DEMO_BENEFICIARIES), []);
+  // Dynamically include connected address in demo tree if available
+  const activeTreeAddresses = useMemo(() => {
+    if (connectedAddress && !DEMO_BENEFICIARIES.includes(connectedAddress)) {
+      return [connectedAddress, ...DEMO_BENEFICIARIES];
+    }
+    return DEMO_BENEFICIARIES;
+  }, [connectedAddress]);
+
+  const demoTree = useMemo(() => buildMerkleTree(activeTreeAddresses), [activeTreeAddresses]);
+
+  // Autofill if user clicks "use connected wallet"
+  const handleUseConnectedWallet = () => {
+    if (connectedAddress) {
+      setClaimAddress(connectedAddress);
+    }
+  };
 
   const handleVerifyClaim = useCallback(() => {
     setClaimStep("verifying");
+    setClaimError(null);
 
     setTimeout(() => {
       const proof = generateProof(demoTree, claimAddress);
@@ -125,22 +148,46 @@ export default function BeneficiaryPage() {
     }, 1000);
   }, [claimAddress, demoTree]);
 
-  const handleSignAndClaim = useCallback(() => {
+  const handleSignAndClaim = useCallback(async () => {
     setClaimStep("verifying");
+    setClaimError(null);
 
-    setTimeout(() => {
-      const fakeTxHash = "0x" + Array.from({ length: 64 }, () =>
-        Math.floor(Math.random() * 16).toString(16)
-      ).join("");
-      setClaimTxHash(fakeTxHash);
-      setClaimStep("confirmed");
-    }, 1500);
-  }, []);
+    try {
+      const eip712 = buildEIP712ClaimData(
+        1,
+        "150000000",
+        claimAddress,
+        0,
+        Math.floor(Date.now() / 1000) + 3600
+      );
+
+      // If MetaMask is connected, request a real EIP-712 signature!
+      if (isConnected) {
+        const res = await signClaimMessage(eip712);
+        if (res.success && res.signature) {
+          setRealSignature(res.signature);
+        }
+      }
+
+      // Simulate relayer submission and confirmed block receipt
+      setTimeout(() => {
+        const fakeTxHash = "0x" + Array.from({ length: 64 }, () =>
+          Math.floor(Math.random() * 16).toString(16)
+        ).join("");
+        setClaimTxHash(fakeTxHash);
+        setClaimStep("confirmed");
+      }, 1200);
+    } catch (err: any) {
+      setClaimError(err?.message || "Signing was cancelled or failed");
+      setClaimStep("signing");
+    }
+  }, [claimAddress, isConnected, signClaimMessage]);
 
   const resetClaim = useCallback(() => {
     setClaimStep("input");
     setProofResult(null);
     setClaimTxHash("");
+    setRealSignature(null);
     setShowProofTree(false);
   }, []);
 
@@ -163,11 +210,11 @@ export default function BeneficiaryPage() {
   }, []);
 
   const handleLoadDemoAddresses = useCallback(() => {
-    setNgoAddresses(DEMO_BENEFICIARIES);
-    const tree = buildMerkleTree(DEMO_BENEFICIARIES);
+    setNgoAddresses(activeTreeAddresses);
+    const tree = buildMerkleTree(activeTreeAddresses);
     setNgoTree(tree);
     setNgoStep("tree");
-  }, []);
+  }, [activeTreeAddresses]);
 
   const handleCommitRoot = useCallback(() => {
     if (!ngoTree) return;
@@ -196,12 +243,12 @@ export default function BeneficiaryPage() {
   }, []);
 
   const voucherData = useMemo(() => {
-    return DEMO_BENEFICIARIES.map((addr) => ({
+    return activeTreeAddresses.map((addr) => ({
       address: addr,
       code: generateVoucherCode(addr, DEMO_CRISIS_ID),
       leaf: hashAddress(addr),
     }));
-  }, []);
+  }, [activeTreeAddresses]);
 
   const eip712Data = useMemo(() => {
     return buildEIP712ClaimData(
@@ -238,7 +285,7 @@ export default function BeneficiaryPage() {
           </p>
         </div>
 
-        {/* Tab Navigation - Coinbase Pill Tabs */}
+        {/* Tab Navigation */}
         <div className="flex items-center gap-1.5 p-1 bg-surface-soft rounded-full border border-hairline mb-8 w-fit">
           {TABS.map((tab) => (
             <button
@@ -262,15 +309,28 @@ export default function BeneficiaryPage() {
             {/* Left: Claim Form */}
             <div className="lg:col-span-2 space-y-4">
               <div className="p-6 rounded-2xl bg-white border border-hairline shadow-card">
-                <div className="flex items-center gap-3 mb-5 pb-4 border-b border-hairline">
-                  <div className="w-8 h-8 rounded-full bg-emerald-50 text-semantic-up flex items-center justify-center">
-                    <ShieldCheck className="w-4 h-4" />
-                  </div>
-                  <div>
-                    <h2 className="text-base font-semibold text-ink">Gasless Aid Claim</h2>
-                    <span className="text-xs text-body">EIP-712 Meta-Transaction</span>
+                <div className="flex items-center justify-between mb-5 pb-4 border-b border-hairline">
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-full bg-emerald-50 text-semantic-up flex items-center justify-center">
+                      <ShieldCheck className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <h2 className="text-base font-semibold text-ink">Gasless Aid Claim</h2>
+                      <span className="text-xs text-body">EIP-712 Meta-Transaction</span>
+                    </div>
                   </div>
                 </div>
+
+                {/* Autofill with Connected MetaMask Button */}
+                {isConnected && connectedAddress && claimAddress !== connectedAddress && (
+                  <button
+                    onClick={handleUseConnectedWallet}
+                    className="w-full mb-4 p-2.5 rounded-xl bg-blue-50/60 hover:bg-blue-50 border border-blue-200 text-primary text-xs font-semibold flex items-center justify-center gap-2 transition-colors font-mono"
+                  >
+                    <Wallet className="w-3.5 h-3.5" />
+                    <span>Autofill with My MetaMask Address</span>
+                  </button>
+                )}
 
                 {/* Step 1: Address Input */}
                 {(claimStep === "input" || claimStep === "verifying") && (
@@ -373,6 +433,12 @@ export default function BeneficiaryPage() {
                       </div>
                     </div>
 
+                    {claimError && (
+                      <div className="p-3 rounded-xl bg-red-50 border border-red-200 text-semantic-down text-xs font-mono">
+                        {claimError}
+                      </div>
+                    )}
+
                     <div className="flex gap-2 pt-2">
                       <button
                         onClick={resetClaim}
@@ -385,7 +451,7 @@ export default function BeneficiaryPage() {
                         className="flex-1 py-2.5 px-4 rounded-full bg-primary hover:bg-primary-hover active:bg-primary-active text-white text-xs font-semibold transition-colors flex items-center justify-center gap-2 shadow-sm"
                       >
                         <Sparkles className="w-3.5 h-3.5" />
-                        Sign & Claim (0 Gas)
+                        <span>{isConnected ? "Sign with MetaMask & Claim" : "Sign & Claim (0 Gas)"}</span>
                       </button>
                     </div>
                   </div>
@@ -412,6 +478,12 @@ export default function BeneficiaryPage() {
                           </button>
                         </span>
                       </div>
+                      {realSignature && (
+                        <div className="p-3 rounded-xl bg-surface-soft border border-hairline">
+                          <div className="text-muted text-[10px]">EIP-712 SIGNATURE:</div>
+                          <div className="text-ink text-[10px] break-all">{truncateHash(realSignature, 12, 12)}</div>
+                        </div>
+                      )}
                       <div className="p-3 rounded-xl bg-surface-soft border border-hairline flex items-center justify-between">
                         <span className="text-body">Network:</span>
                         <span className="text-ink">Polygon Amoy</span>
@@ -587,7 +659,7 @@ export default function BeneficiaryPage() {
                     onClick={handleLoadDemoAddresses}
                     className="w-full py-3 px-4 rounded-full bg-surface-soft hover:bg-surface-strong text-ink text-xs font-semibold transition-colors"
                   >
-                    Load Demo Addresses ({DEMO_BENEFICIARIES.length} beneficiaries)
+                    Load Demo Addresses ({activeTreeAddresses.length} beneficiaries)
                   </button>
                 </div>
               )}
@@ -695,7 +767,7 @@ export default function BeneficiaryPage() {
                     className="w-full py-3 px-4 rounded-full bg-primary hover:bg-primary-hover active:bg-primary-active text-white text-sm font-semibold transition-colors flex items-center justify-center gap-2 shadow-sm"
                   >
                     <QrCode className="w-4 h-4" />
-                    Generate {DEMO_BENEFICIARIES.length} Vouchers
+                    Generate {activeTreeAddresses.length} Vouchers
                   </button>
                 </div>
               ) : (

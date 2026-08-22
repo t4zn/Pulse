@@ -3,6 +3,7 @@
 import React, { useState } from "react";
 import Link from "next/link";
 import { QuickLinksSection } from "@/components/QuickLinksSection";
+import { SwapModal } from "@/components/SwapModal";
 import { 
   Zap, 
   ShieldCheck, 
@@ -15,11 +16,13 @@ import {
   Lock, 
   CheckCircle2, 
   Radio,
-  ExternalLink
+  ExternalLink,
+  ArrowDownUp
 } from "lucide-react";
 
 export default function CommandCenterHome() {
   const [activeTab, setActiveTab] = useState<"all" | "earthquake" | "flood" | "drought">("all");
+  const [swapModalOpen, setSwapModalOpen] = useState(false);
 
   const crises = [
     {
@@ -161,7 +164,7 @@ export default function CommandCenterHome() {
             </div>
 
             {/* Quick Action CTAs */}
-            <div className="flex items-center gap-3">
+            <div className="flex flex-wrap items-center gap-3">
               <Link
                 href="/crisis/turkey-earthquake-2026"
                 className="px-6 py-3 rounded-full bg-primary hover:bg-primary-hover active:bg-primary-active text-white text-sm font-semibold flex items-center gap-2 transition-all shadow-sm"
@@ -169,15 +172,25 @@ export default function CommandCenterHome() {
                 <Zap className="w-4 h-4" />
                 <span>Donate to Active Crisis</span>
               </Link>
+              <button
+                onClick={() => setSwapModalOpen(true)}
+                className="px-5 py-3 rounded-full bg-surface-soft hover:bg-surface-strong text-ink text-sm font-semibold border border-hairline flex items-center gap-2 transition-colors"
+              >
+                <ArrowDownUp className="w-4 h-4 text-primary" />
+                <span>Swap Currency</span>
+              </button>
               <Link
                 href="/audit"
                 className="px-5 py-3 rounded-full bg-surface-soft hover:bg-surface-strong text-ink text-sm font-semibold border border-hairline flex items-center gap-2 transition-colors"
               >
                 <Search className="w-4 h-4 text-body" />
-                <span>Live Audit Ledger</span>
+                <span>Live Audit</span>
               </Link>
             </div>
           </div>
+
+          {/* Minimal Swap Modal */}
+          <SwapModal isOpen={swapModalOpen} onClose={() => setSwapModalOpen(false)} />
 
           {/* 4 Protocol Stat Tiles */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">

@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
+import { WalletProvider } from "@/context/WalletContext";
 
 export const metadata: Metadata = {
   title: "PULSE — Cross-Chain Emergency Aid & Verifiable Aid Protocol",
@@ -15,15 +16,17 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className="dark">
+    <html lang="en">
       <head>
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
       </head>
-      <body className="min-h-screen bg-canvas text-ink antialiased flex flex-col selection:bg-primary/30 selection:text-white">
-        <Navbar />
-        <main className="flex-1 w-full">{children}</main>
-        <Footer />
+      <body className="min-h-screen bg-canvas text-ink antialiased flex flex-col selection:bg-primary/20 selection:text-primary">
+        <WalletProvider>
+          <Navbar />
+          <main className="flex-1 w-full">{children}</main>
+          <Footer />
+        </WalletProvider>
       </body>
     </html>
   );
