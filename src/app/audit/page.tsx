@@ -220,37 +220,37 @@ export default function AuditPage() {
   };
 
   return (
-    <div className="w-full bg-canvas text-ink min-h-screen py-12 px-4 md:px-8">
+    <div className="w-full bg-canvas text-ink min-h-screen py-8 px-4 md:px-8">
       <div className="max-w-[1280px] mx-auto">
         {/* Back Link */}
-        <Link href="/" className="inline-flex items-center gap-1.5 text-xs font-mono text-ink-subtle hover:text-ink mb-8 transition-colors">
-          <ArrowLeft className="w-4 h-4" /> Back to Global Command Center
+        <Link href="/" className="inline-flex items-center gap-1.5 text-xs font-mono text-ink-subtle hover:text-ink mb-6 transition-colors">
+          <ArrowLeft className="w-3.5 h-3.5" /> Back to Command Center
         </Link>
 
         {/* Page Header */}
-        <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-10">
+        <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-8">
           <div>
             <div className="flex items-center gap-2 mb-2">
-              <span className="w-2 h-2 rounded-full bg-semantic-success animate-pulse"></span>
-              <span className="text-xs font-mono tracking-eyebrow text-semantic-success uppercase">
+              <span className="w-1.5 h-1.5 rounded-full bg-semantic-success animate-pulse"></span>
+              <span className="text-[11px] font-mono tracking-eyebrow text-semantic-success uppercase">
                 100% VISUAL ON-CHAIN AUDITABILITY
               </span>
             </div>
-            <h1 className="text-3xl md:text-5xl font-semibold tracking-headline text-ink mb-3">
+            <h1 className="text-2xl md:text-3xl font-semibold tracking-tight text-ink mb-2">
               Glass-Box Live Audit Ledger
             </h1>
-            <p className="text-ink-subtle text-base max-w-2xl leading-relaxed">
-              Every donation, category allocation, and zero-knowledge beneficiary disbursement is committed permanently to the blockchain with attached IPFS delivery photo receipts.
+            <p className="text-xs md:text-sm text-ink-subtle max-w-2xl leading-relaxed">
+              Every donation, category allocation, and zero-knowledge beneficiary disbursement is committed permanently to the blockchain with attached IPFS delivery receipts.
             </p>
           </div>
 
-          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
             <button
               onClick={handleExportJSON}
-              className="px-4 py-2.5 rounded-md bg-surface-1 hover:bg-surface-2 text-ink text-xs font-mono border border-hairline hover:border-hairline-strong transition-all flex items-center justify-center gap-2 shadow-sm"
+              className="px-3.5 py-1.5 rounded-md bg-surface-1 hover:bg-surface-2 text-ink text-xs font-mono border border-hairline hover:border-hairline-strong transition-colors flex items-center justify-center gap-1.5"
             >
-              <Download className="w-4 h-4 text-primary" />
-              <span>{downloadSuccess ? "✓ Proof JSON Downloaded!" : "Export Cryptographic Audit (JSON)"}</span>
+              <Download className="w-3.5 h-3.5 text-primary" />
+              <span>{downloadSuccess ? "✓ Proof JSON Downloaded" : "Export Cryptographic Audit (JSON)"}</span>
             </button>
           </div>
         </div>
