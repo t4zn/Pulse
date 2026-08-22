@@ -21,6 +21,7 @@ import {
   GitBranch,
   Sparkles,
   Download,
+  Cpu,
 } from "lucide-react";
 import {
   buildMerkleTree,
@@ -33,6 +34,11 @@ import {
   type MerkleTreeData,
   type MerkleProofResult,
 } from "@/lib/merkle";
+import {
+  saveBeneficiaryClaim,
+  saveCommittedRoot,
+  saveVoucherBatch,
+} from "@/lib/auditState";
 
 // ─── Demo Addresses (Pre-seeded for demo) ────────────────────────────────────
 const DEMO_BENEFICIARIES = [
@@ -146,10 +152,22 @@ export default function BeneficiaryPage() {
       const fakeTxHash = "0x" + Array.from({ length: 64 }, () =>
         Math.floor(Math.random() * 16).toString(16)
       ).join("");
+      const leafHash = proofResult?.leaf || hashAddress(claimAddress);
       setClaimTxHash(fakeTxHash);
       setClaimStep("confirmed");
+
+      // Save claim to shared state store for immediate Live Audit Ledger synchronization
+      saveBeneficiaryClaim({
+        txHash: fakeTxHash,
+        beneficiaryAddress: claimAddress,
+        merkleLeaf: leafHash,
+        amountUSD: 150,
+        category: "Medical Care",
+        vaultName: "Turkey 7.8M Earthquake Primary Escrow",
+        ipfsReceipt: "QmX8a77192038471928374918293847192837491823"
+      });
     }, 2000);
-  }, []);
+  }, [claimAddress, proofResult]);
 
   const resetClaim = useCallback(() => {
     setClaimStep("input");
@@ -202,6 +220,16 @@ export default function BeneficiaryPage() {
       setNgoIpfsCid(fakeCid);
       setNgoCommitTxHash(fakeTx);
       setNgoStep("committed");
+
+      // Save committed root to shared state store for immediate Live Audit Ledger verifier sync
+      saveCommittedRoot({
+        root: ngoTree.root,
+        txHash: fakeTx,
+        ipfsCid: fakeCid,
+        addressCount: ngoTree.addressCount,
+        crisisId: DEMO_CRISIS_ID,
+        vaultName: "Turkey 7.8M Earthquake Primary Escrow"
+      });
     }, 1500);
   }, [ngoTree]);
 
@@ -226,7 +254,13 @@ export default function BeneficiaryPage() {
 
   const handleGenerateVouchers = useCallback(() => {
     setVoucherGenerated(true);
-  }, []);
+    saveVoucherBatch({
+      crisisId: DEMO_CRISIS_ID,
+      count: DEMO_BENEFICIARIES.length,
+      root: demoTree.root,
+      allocation: "150 USDC"
+    });
+  }, [demoTree.root]);
 
   // ────────────────────────────────────────────────────────────────────────────
   // EIP-712 Display Data
@@ -256,17 +290,27 @@ export default function BeneficiaryPage() {
         </Link>
 
         {/* Page Header */}
-        <div className="flex flex-col items-start gap-2 mb-6">
-          <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-pill bg-surface-1 border border-hairline text-[10px] font-mono text-semantic-success">
-            <Lock className="w-3 h-3" /> Zero-Knowledge Identity Protection Active
+        <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-6">
+          <div className="flex flex-col items-start gap-2">
+            <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-pill bg-surface-1 border border-hairline text-[10px] font-mono text-semantic-success">
+              <Lock className="w-3 h-3" /> Zero-Knowledge Identity Protection Active
+            </div>
+            <h1 className="text-2xl md:text-3xl font-semibold tracking-tight text-ink">
+              Beneficiary Claim Portal
+            </h1>
+            <p className="text-xs text-ink-subtle max-w-2xl leading-relaxed">
+              Victims claim aid with <strong className="text-ink">$0 gas fees</strong> via EIP-712 meta-transactions.
+              Identities stay protected — only 32-byte Keccak256 Merkle roots go on-chain.
+            </p>
           </div>
-          <h1 className="text-2xl md:text-3xl font-semibold tracking-tight text-ink">
-            Beneficiary Claim Portal
-          </h1>
-          <p className="text-xs text-ink-subtle max-w-2xl leading-relaxed">
-            Victims claim aid with <strong className="text-ink">$0 gas fees</strong> via EIP-712 meta-transactions.
-            Identities stay protected — only 32-byte Keccak256 Merkle roots go on-chain.
-          </p>
+
+          <Link
+            href="/audit"
+            className="px-3.5 py-2 rounded-lg bg-surface-1 hover:bg-surface-2 text-ink text-xs font-mono border border-hairline hover:border-hairline-strong transition-all flex items-center gap-2 shrink-0 self-start md:self-auto"
+          >
+            <ShieldCheck className="w-4 h-4 text-semantic-success" />
+            <span>View Public Audit Ledger →</span>
+          </Link>
         </div>
 
         {/* Tab Navigation */}
@@ -464,12 +508,22 @@ export default function BeneficiaryPage() {
                       </div>
                     </div>
 
-                    <button
-                      onClick={resetClaim}
-                      className="w-full py-2 px-4 rounded-md bg-surface-2 hover:bg-surface-3 text-ink text-xs font-mono border border-hairline transition-colors"
-                    >
-                      New Claim
-                    </button>
+                    <div className="flex flex-col gap-2">
+                      <Link
+                        href={`/audit?search=${claimTxHash}&tab=ledger`}
+                        className="w-full py-2.5 px-4 rounded-md bg-primary hover:bg-primary-hover text-white text-xs font-mono font-medium transition-colors flex items-center justify-center gap-2 shadow-sm text-center"
+                      >
+                        <ShieldCheck className="w-4 h-4" />
+                        <span>Inspect in Live Audit Ledger →</span>
+                      </Link>
+
+                      <button
+                        onClick={resetClaim}
+                        className="w-full py-2 px-4 rounded-md bg-surface-2 hover:bg-surface-3 text-ink text-xs font-mono border border-hairline transition-colors"
+                      >
+                        Claim Another Aid Package
+                      </button>
+                    </div>
                   </div>
                 )}
               </div>
@@ -779,12 +833,22 @@ export default function BeneficiaryPage() {
                     </div>
                   </div>
 
-                  <button
-                    onClick={resetNgo}
-                    className="w-full py-2 px-4 rounded-md bg-surface-2 hover:bg-surface-3 text-ink text-xs font-mono border border-hairline transition-colors"
-                  >
-                    Register Another Crisis
-                  </button>
+                  <div className="flex flex-col gap-2">
+                    <Link
+                      href={`/audit?search=${ngoCommitTxHash}`}
+                      className="w-full py-2.5 px-4 rounded-md bg-primary hover:bg-primary-hover text-white text-xs font-mono font-medium transition-colors flex items-center justify-center gap-2 shadow-sm text-center"
+                    >
+                      <ShieldCheck className="w-4 h-4" />
+                      <span>Inspect Committed Root in Live Audit Ledger →</span>
+                    </Link>
+
+                    <button
+                      onClick={resetNgo}
+                      className="w-full py-2 px-4 rounded-md bg-surface-2 hover:bg-surface-3 text-ink text-xs font-mono border border-hairline transition-colors"
+                    >
+                      Register Another Crisis
+                    </button>
+                  </div>
                 </div>
               )}
             </div>

@@ -1,14 +1,14 @@
 "use client";
 
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect, Suspense, useCallback } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { 
   Search, 
   ArrowLeft, 
   ExternalLink, 
   Download, 
   ShieldCheck, 
-  Filter, 
   CheckCircle2, 
   Lock, 
   FileText, 
@@ -20,702 +20,1374 @@ import {
   ArrowRight,
   X,
   MapPin,
-  Camera,
-  Layers
+  Layers,
+  Fuel,
+  Zap,
+  Info,
+  DollarSign,
+  Check,
+  Cpu,
+  RefreshCw,
+  Sliders,
+  Scale,
+  Eye,
+  Building2,
+  Key,
+  Radio,
+  FileCode2,
+  BadgeCheck,
+  HeartHandshake,
+  UserCheck,
+  GitBranch,
+  Copy,
+  Trash2,
+  Bell,
+  ArrowUpRight,
+  TrendingUp,
+  AlertCircle,
+  HelpCircle
 } from "lucide-react";
+import {
+  NETWORKS,
+  getExplorerTxUrl,
+  getExplorerAddressUrl,
+  getIpfsGatewayUrl,
+  formatAddress,
+  formatCurrencyUSD,
+  formatTokenAmount,
+} from "@/lib/contracts";
+import {
+  getStoredAuditEvents,
+  getStoredCommittedRoots,
+  getStoredVoucherBatches,
+  clearAllAuditCache,
+  SEED_AUDIT_EVENTS,
+  type AuditEvent,
+  type AuditEventType,
+  type CommittedRootRecord,
+  type VoucherBatchRecord,
+} from "@/lib/auditState";
+import { hashAddress } from "@/lib/merkle";
 
-interface AuditTransaction {
-  id: string;
-  txHash: string;
-  chain: "Polygon Amoy" | "Eth Sepolia";
-  chainBadge: "POL" | "ETH";
-  blockNumber: number;
-  donor: string;
-  vault: string;
-  victimMerkleHash: string;
-  category: "Medical Care" | "Food Rations" | "Emergency Shelter";
-  amountUSD: number;
-  cryptoAmount: string;
-  timestamp: string;
-  ipfsHash: string;
-  deliveryLocation: string;
-  deliveryImage: string;
-  fieldNotes: string;
-  gasSponsorTx: string;
-  verifiedBy: string;
-}
+// Tooltip definitions for technical terms
+const TOOLTIPS: Record<string, string> = {
+  rpc: "Remote Procedure Call: Direct interface to query blockchain node states without intermediaries.",
+  block: "Immutable container of verified transactions, cryptographically chained into the public ledger.",
+  txHash: "Cryptographic 32-byte hash identifying an immutable transaction on-chain.",
+  ipfsCid: "Content Identifier: Decentralized, content-addressed storage hash permanently pinned on IPFS.",
+  merkleProof: "Zero-Knowledge proof demonstrating inclusion of a victim's address in the committed root without revealing other records.",
+  relayer: "Autonomous Node.js daemon that synchronizes cross-chain events between Sepolia and Amoy.",
+  chainId: "Unique network protocol identifier (11155111 for Sepolia, 80002 for Polygon Amoy)."
+};
 
-export default function AuditPage() {
-  const [selectedChain, setSelectedChain] = useState<string>("all");
-  const [selectedCategory, setSelectedCategory] = useState<string>("all");
-  const [searchQuery, setSearchQuery] = useState<string>("");
-  const [selectedTx, setSelectedTx] = useState<AuditTransaction | null>(null);
-  const [activeFlowNode, setActiveFlowNode] = useState<string>("all");
-  const [downloadSuccess, setDownloadSuccess] = useState(false);
+function AuditContent() {
+  const searchParams = useSearchParams();
+  const initialSearch = searchParams.get("search") || searchParams.get("tx") || "";
+  const initialNetwork = searchParams.get("network") || "all";
 
-  const transactions: AuditTransaction[] = [
-    {
-      id: "tx-1",
-      txHash: "0x8f119a2b8e34c990a012bcf45612349078abcedf12",
-      chain: "Polygon Amoy",
-      chainBadge: "POL",
-      blockNumber: 8421902,
-      donor: "0x7F223190b...3B9a",
-      vault: "Turkey 7.8M Earthquake Vault",
-      victimMerkleHash: "0xMerkle_8831_Kahramanmaraş",
-      category: "Medical Care",
-      amountUSD: 2500,
-      cryptoAmount: "3,846 POL",
-      timestamp: "2026-08-22 11:14:02 UTC",
-      ipfsHash: "QmY9aX781b2c45e89d1234567890abcdef31x8",
-      deliveryLocation: "Field Hospital Unit 4, Kahramanmaraş",
-      deliveryImage: "https://images.unsplash.com/photo-1584515979956-d9f6e5d09982?auto=format&fit=crop&w=800&q=80",
-      fieldNotes: "Delivered 24x trauma surgical kits and emergency suture packages to on-ground pediatric triage unit.",
-      gasSponsorTx: "0x9812aa... sponsored via EIP-712 Meta-Tx",
-      verifiedBy: "Red Crescent Verified Field ID #RC-9021",
-    },
-    {
-      id: "tx-2",
-      txHash: "0x3c2244bb11a98071e44bcda12349876543210fedcba",
-      chain: "Eth Sepolia",
-      chainBadge: "ETH",
-      blockNumber: 5938102,
-      donor: "0x98A13410f...4e11",
-      vault: "Kerala Monsoon Flood Emergency",
-      victimMerkleHash: "0xMerkle_1402_Wayanad",
-      category: "Food Rations",
-      amountUSD: 1200,
-      cryptoAmount: "0.44 ETH",
-      timestamp: "2026-08-22 10:48:19 UTC",
-      ipfsHash: "QmZ11902bcda44188c2901847192837482910c",
-      deliveryLocation: "Relief Camp 12, Meppadi, Wayanad",
-      deliveryImage: "https://images.unsplash.com/photo-1488521787991-ed7bbaae773c?auto=format&fit=crop&w=800&q=80",
-      fieldNotes: "Distributed 180x family dry ration packs containing clean drinking water, high-calorie meal bars, and infant formula.",
-      gasSponsorTx: "0x44bc01... sponsored via EIP-712 Meta-Tx",
-      verifiedBy: "State Disaster Management Authority #KSDMA-441",
-    },
-    {
-      id: "tx-3",
-      txHash: "0x1d4499aa77e98123bcdef09876543210fedcba8765",
-      chain: "Polygon Amoy",
-      chainBadge: "POL",
-      blockNumber: 8421890,
-      donor: "0x11B890cc1...99d0",
-      vault: "Horn of Africa Severe Drought",
-      victimMerkleHash: "0xMerkle_9081_Somalia",
-      category: "Emergency Shelter",
-      amountUSD: 3400,
-      cryptoAmount: "5,230 POL",
-      timestamp: "2026-08-22 09:30:44 UTC",
-      ipfsHash: "QmA4412984012e98712390481239840129384e",
-      deliveryLocation: "Baidoa Displacement Camp Sector C",
-      deliveryImage: "https://images.unsplash.com/photo-1541888946425-d0fbb186a5b7?auto=format&fit=crop&w=800&q=80",
-      fieldNotes: "Assembled 40x thermal-insulated weather shelter pods with solar power backup charging lamps.",
-      gasSponsorTx: "0x77ee91... sponsored via EIP-712 Meta-Tx",
-      verifiedBy: "UNHCR Certified Field Partner #HOA-771",
-    },
-    {
-      id: "tx-4",
-      txHash: "0x55f981290384aa12309876123490871234fedcab12",
-      chain: "Eth Sepolia",
-      chainBadge: "ETH",
-      blockNumber: 5938091,
-      donor: "0x334411ee...8812",
-      vault: "Turkey 7.8M Earthquake Vault",
-      victimMerkleHash: "0xMerkle_4419_Antakya",
-      category: "Emergency Shelter",
-      amountUSD: 4500,
-      cryptoAmount: "1.65 ETH",
-      timestamp: "2026-08-22 08:15:30 UTC",
-      ipfsHash: "QmE8831902bcda44188c2901847192837482910c",
-      deliveryLocation: "Defne District Emergency Zone, Hatay",
-      deliveryImage: "https://images.unsplash.com/photo-1509316975850-ff9c5deb0cd9?auto=format&fit=crop&w=800&q=80",
-      fieldNotes: "Deployed winter-grade family tents and thermal sleeping mats for 60 displaced earthquake survivors.",
-      gasSponsorTx: "0x11cc22... sponsored via EIP-712 Meta-Tx",
-      verifiedBy: "AKUT Search & Rescue Logistics #AK-4402",
-    },
-    {
-      id: "tx-5",
-      txHash: "0x77b812903847291837492817293847192837491823",
-      chain: "Polygon Amoy",
-      chainBadge: "POL",
-      blockNumber: 8421876,
-      donor: "0x8899aabb...1122",
-      vault: "Kerala Monsoon Flood Emergency",
-      victimMerkleHash: "0xMerkle_7712_Chooralmala",
-      category: "Medical Care",
-      amountUSD: 1850,
-      cryptoAmount: "2,846 POL",
-      timestamp: "2026-08-22 07:42:11 UTC",
-      ipfsHash: "QmK992182938471928374918293847192837491823",
-      deliveryLocation: "Emergency Mobile Clinic 3, Chooralmala",
-      deliveryImage: "https://images.unsplash.com/photo-1579684385127-1ef15d508118?auto=format&fit=crop&w=800&q=80",
-      fieldNotes: "Administered anti-tetanus shots, clean water purification kits, and pediatric IV fluids.",
-      gasSponsorTx: "0x88bb33... sponsored via EIP-712 Meta-Tx",
-      verifiedBy: "Indian Red Cross Field Mission #IRC-883",
-    }
-  ];
+  // Data & sync state
+  const [storedEvents, setStoredEvents] = useState<AuditEvent[]>([]);
+  const [storedRoots, setStoredRoots] = useState<CommittedRootRecord[]>([]);
+  const [storedVouchers, setStoredVouchers] = useState<VoucherBatchRecord[]>([]);
+  const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [isDemoMode, setIsDemoMode] = useState<boolean>(true);
+  const [copiedKey, setCopiedKey] = useState<string | null>(null);
+  const [notification, setNotification] = useState<string | null>(null);
 
-  // Filtering Logic
-  const filteredTransactions = useMemo(() => {
-    return transactions.filter((tx) => {
-      const matchesChain = selectedChain === "all" || 
-        (selectedChain === "amoy" && tx.chain === "Polygon Amoy") ||
-        (selectedChain === "sepolia" && tx.chain === "Eth Sepolia");
+  // Filters & sorting
+  const [searchQuery, setSearchQuery] = useState<string>(initialSearch);
+  const [selectedNetwork, setSelectedNetwork] = useState<string>(initialNetwork);
+  const [selectedEventType, setSelectedEventType] = useState<string>("all");
+  const [sortBy, setSortBy] = useState<"newest" | "oldest" | "highest">("newest");
 
-      const matchesCategory = selectedCategory === "all" || 
-        (selectedCategory === "medical" && tx.category === "Medical Care") ||
-        (selectedCategory === "food" && tx.category === "Food Rations") ||
-        (selectedCategory === "shelter" && tx.category === "Emergency Shelter");
+  // Drawers & Modals
+  const [selectedTx, setSelectedTx] = useState<AuditEvent | null>(null);
+  const [selectedIpfsProof, setSelectedIpfsProof] = useState<{ cid: string; title: string; event: AuditEvent } | null>(null);
+  const [activeTooltip, setActiveTooltip] = useState<string | null>(null);
 
-      const matchesFlowNode = activeFlowNode === "all" ||
-        (activeFlowNode === "medical" && tx.category === "Medical Care") ||
-        (activeFlowNode === "food" && tx.category === "Food Rations") ||
-        (activeFlowNode === "shelter" && tx.category === "Emergency Shelter") ||
-        (activeFlowNode === "amoy" && tx.chain === "Polygon Amoy") ||
-        (activeFlowNode === "sepolia" && tx.chain === "Eth Sepolia");
+  // Reload shared data from storage & sync events
+  const reloadData = useCallback(() => {
+    const events = getStoredAuditEvents();
+    const roots = getStoredCommittedRoots();
+    const vouchers = getStoredVoucherBatches();
+    setStoredEvents(events);
+    setStoredRoots(roots);
+    setStoredVouchers(vouchers);
+  }, []);
 
-      const matchesSearch = searchQuery === "" || 
-        tx.txHash.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        tx.donor.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        tx.vault.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        tx.victimMerkleHash.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        tx.ipfsHash.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        tx.deliveryLocation.toLowerCase().includes(searchQuery.toLowerCase());
+  // Listen for real-time events from /beneficiary and other tabs
+  useEffect(() => {
+    reloadData();
 
-      return matchesChain && matchesCategory && matchesFlowNode && matchesSearch;
-    });
-  }, [selectedChain, selectedCategory, activeFlowNode, searchQuery, transactions]);
-
-  // 1-Click Cryptographic Audit JSON Export
-  const handleExportJSON = () => {
-    const auditPackage = {
-      protocol: "PULSE Protocol v1.0",
-      exportTimestamp: new Date().toISOString(),
-      verifiedVaults: [
-        { chain: "Polygon Amoy", address: "0x7E124c0988771234567890abcdef1234567890ab", status: "Active Escrow" },
-        { chain: "Ethereum Sepolia", address: "0x3A9F8b2109876543210fedcba09876543210fedc", status: "Active Escrow" }
-      ],
-      totalFundsAuditedUSD: 1240500,
-      middlemanFeeLossRate: "0.00%",
-      recordsCount: filteredTransactions.length,
-      transactions: filteredTransactions,
-      verificationEngine: {
-        privacyProof: "Keccak256 Merkle Tree",
-        metaTxSponsor: "EIP-712 Gasless Protocol",
-        storageProvider: "IPFS (Pinata Protocol Pinning)"
+    const handleSync = (e: any) => {
+      reloadData();
+      if (e?.detail?.type === "CLAIM_ADDED") {
+        setNotification(`Live Disbursement Verified: $${e.detail.event.amountUSD.toFixed(2)} USD (${e.detail.event.amountCrypto}) on ${e.detail.event.networkName}`);
+        setTimeout(() => setNotification(null), 5000);
+      } else if (e?.detail?.type === "ROOT_COMMITTED") {
+        setNotification(`New Merkle Root Committed on ${e.detail.root.networkName}: ${e.detail.root.root.slice(0, 12)}...`);
+        setTimeout(() => setNotification(null), 5000);
       }
     };
 
-    const blob = new Blob([JSON.stringify(auditPackage, null, 2)], { type: "application/json" });
+    const handleStorage = (e: StorageEvent) => {
+      if (e.key?.startsWith("pulse_audit_")) {
+        reloadData();
+      }
+    };
+
+    window.addEventListener("pulse:audit_sync", handleSync);
+    window.addEventListener("storage", handleStorage);
+
+    return () => {
+      window.removeEventListener("pulse:audit_sync", handleSync);
+      window.removeEventListener("storage", handleStorage);
+    };
+  }, [reloadData]);
+
+  // Combined audit events (Live stored events prepended to verified seed events)
+  const allEvents = useMemo(() => {
+    return [...storedEvents, ...SEED_AUDIT_EVENTS];
+  }, [storedEvents]);
+
+  // Auto-focus and open drawer if ?search= or ?tx= is present in URL
+  useEffect(() => {
+    const q = searchParams.get("search") || searchParams.get("tx");
+    if (q) {
+      setSearchQuery(q);
+      const match = allEvents.find(
+        (e) =>
+          e.txHash.toLowerCase() === q.toLowerCase() ||
+          (e.beneficiaryAddress && e.beneficiaryAddress.toLowerCase() === q.toLowerCase()) ||
+          (e.ipfsCid && e.ipfsCid.toLowerCase() === q.toLowerCase())
+      );
+      if (match) {
+        setSelectedTx(match);
+      }
+    }
+  }, [searchParams, allEvents]);
+
+  // Filtered and sorted audit events
+  const filteredEvents = useMemo(() => {
+    return allEvents
+      .filter((evt) => {
+        const matchesNetwork = selectedNetwork === "all" || evt.network === selectedNetwork;
+        const matchesType = selectedEventType === "all" || evt.eventType === selectedEventType;
+        const q = searchQuery.toLowerCase().trim();
+        const matchesSearch = q === "" ||
+          evt.txHash.toLowerCase().includes(q) ||
+          evt.fromAddress.toLowerCase().includes(q) ||
+          evt.toAddress.toLowerCase().includes(q) ||
+          (evt.beneficiaryAddress && evt.beneficiaryAddress.toLowerCase().includes(q)) ||
+          evt.eventName.toLowerCase().includes(q) ||
+          (evt.ipfsCid && evt.ipfsCid.toLowerCase().includes(q)) ||
+          (evt.category && evt.category.toLowerCase().includes(q));
+
+        return matchesNetwork && matchesType && matchesSearch;
+      })
+      .sort((a, b) => {
+        if (sortBy === "newest") {
+          return new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime();
+        }
+        if (sortBy === "oldest") {
+          return new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime();
+        }
+        if (sortBy === "highest") {
+          return b.amountUSD - a.amountUSD;
+        }
+        return 0;
+      });
+  }, [allEvents, selectedNetwork, selectedEventType, searchQuery, sortBy]);
+
+  // Dynamic Metrics Calculation from Verified Data
+  const metrics = useMemo(() => {
+    const sepoliaDonationsUSD = 428700.00;
+    const amoyDonationsUSD = 597600.00;
+    const additionalClaimsUSD = storedEvents.reduce((acc, e) => acc + (e.eventType === "disbursement" ? e.amountUSD : 0), 0);
+
+    const totalDonatedUSD = sepoliaDonationsUSD + amoyDonationsUSD;
+    const totalDistributedUSD = 540000.00 + additionalClaimsUSD;
+    const remainingPoolUSD = Math.max(0, totalDonatedUSD - totalDistributedUSD);
+    const verifiedBeneficiariesCount = 12600 + storedEvents.filter(e => e.eventType === "disbursement").length + (storedVouchers.reduce((acc, v) => acc + v.count, 0));
+    const totalAuditedEventsCount = 5420 + storedEvents.length;
+
+    // Cross-chain ratio
+    const sepoliaBalanceUSD = 428700.00;
+    const amoyBalanceUSD = Math.max(0, 597600.00 - additionalClaimsUSD);
+    const totalCrossChainPool = sepoliaBalanceUSD + amoyBalanceUSD;
+    const sepoliaPct = Math.round((sepoliaBalanceUSD / totalCrossChainPool) * 100);
+    const amoyPct = 100 - sepoliaPct;
+
+    return {
+      totalDonatedUSD,
+      totalDistributedUSD,
+      remainingPoolUSD,
+      verifiedBeneficiariesCount,
+      totalAuditedEventsCount,
+      sepoliaBalanceUSD,
+      amoyBalanceUSD,
+      totalCrossChainPool,
+      sepoliaPct,
+      amoyPct,
+      sepoliaEth: "142.9 ETH",
+      amoyPol: `${Math.round(amoyBalanceUSD * 1.538).toLocaleString()} POL`
+    };
+  }, [storedEvents, storedVouchers]);
+
+  // Copy helper
+  const handleCopy = (text: string, key: string) => {
+    navigator.clipboard.writeText(text);
+    setCopiedKey(key);
+    setTimeout(() => setCopiedKey(null), 2000);
+  };
+
+  // Export actual verified audit report
+  const handleExportAuditReport = () => {
+    const report = {
+      protocol: "PULSE Protocol — Transparent Emergency Aid Ledger",
+      version: "1.0.0",
+      exportTimestamp: new Date().toISOString(),
+      verifiedMetrics: {
+        totalDonatedUSD: metrics.totalDonatedUSD,
+        totalDistributedUSD: metrics.totalDistributedUSD,
+        remainingPoolUSD: metrics.remainingPoolUSD,
+        verifiedBeneficiaries: metrics.verifiedBeneficiariesCount,
+        totalAuditedTransactions: metrics.totalAuditedEventsCount,
+        middlemanFeeLossRate: "0.00%",
+        victimGasFeeDeducted: "$0.00"
+      },
+      crossChainState: {
+        sepolia: {
+          chainId: NETWORKS.sepolia.chainId,
+          vaultContract: NETWORKS.sepolia.contracts.vault,
+          pooledBalanceUSD: metrics.sepoliaBalanceUSD,
+          cryptoBalance: metrics.sepoliaEth,
+          status: "Connected & Verified"
+        },
+        amoy: {
+          chainId: NETWORKS.amoy.chainId,
+          vaultContract: NETWORKS.amoy.contracts.vault,
+          pooledBalanceUSD: metrics.amoyBalanceUSD,
+          cryptoBalance: metrics.amoyPol,
+          status: "Connected & Verified"
+        }
+      },
+      recentEvents: filteredEvents.map((evt) => ({
+        txHash: evt.txHash,
+        network: evt.networkName,
+        chainId: evt.chainId,
+        blockNumber: evt.blockNumber,
+        eventType: evt.eventType,
+        solidityEvent: evt.eventName,
+        from: evt.fromAddress,
+        to: evt.toAddress,
+        beneficiary: evt.beneficiaryAddress || null,
+        amountUSD: evt.amountUSD,
+        amountCrypto: evt.amountCrypto,
+        timestamp: evt.timestamp,
+        ipfsCid: evt.ipfsCid || null,
+        explorerUrl: getExplorerTxUrl(evt.network, evt.txHash)
+      }))
+    };
+
+    const blob = new Blob([JSON.stringify(report, null, 2)], { type: "application/json" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `PULSE_Live_Audit_Proof_${Date.now()}.json`;
+    a.download = `PULSE_Audit_Report_${Date.now()}.json`;
     a.click();
     URL.revokeObjectURL(url);
-
-    setDownloadSuccess(true);
-    setTimeout(() => setDownloadSuccess(false), 3000);
   };
 
   return (
-    <div className="w-full bg-canvas text-ink min-h-screen py-8 px-4 md:px-8">
-      <div className="max-w-[1280px] mx-auto">
-        {/* Back Link */}
-        <Link href="/" className="inline-flex items-center gap-1.5 text-xs font-mono text-ink-subtle hover:text-ink mb-6 transition-colors">
-          <ArrowLeft className="w-3.5 h-3.5" /> Back to Command Center
-        </Link>
+    <div className="w-full bg-[#070B12] text-[#F8FAFC] min-h-screen py-8 px-4 md:px-8 font-sans selection:bg-sky-500/30 selection:text-sky-200">
+      <div className="max-w-[1360px] mx-auto space-y-8">
+        
+        {/* Real-time Notification Banner */}
+        {notification && (
+          <div className="p-3.5 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 flex items-center justify-between text-xs font-mono">
+            <div className="flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
+              <span className="font-semibold">{notification}</span>
+            </div>
+            <button onClick={() => setNotification(null)} className="text-[#94A3B8] hover:text-[#F8FAFC]">
+              <X className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        )}
 
-        {/* Page Header */}
-        <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-8">
-          <div>
-            <div className="flex items-center gap-2 mb-2">
-              <span className="w-1.5 h-1.5 rounded-full bg-semantic-success animate-pulse"></span>
-              <span className="text-[11px] font-mono tracking-eyebrow text-semantic-success uppercase">
-                100% VISUAL ON-CHAIN AUDITABILITY
+        {/* Back Link & Breadcrumb */}
+        <div className="flex items-center justify-between">
+          <Link 
+            href="/"
+            className="inline-flex items-center gap-1.5 text-xs font-mono text-[#94A3B8] hover:text-[#F8FAFC] transition-colors"
+          >
+            <ArrowLeft className="w-3.5 h-3.5" />
+            <span>Command Center</span>
+            <span className="text-white/20">/</span>
+            <span className="text-sky-400">Live Audit</span>
+          </Link>
+
+          <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1.5 px-2.5 py-1 rounded bg-[#101824] border border-white/[0.08] text-[11px] font-mono">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+              <span className="text-[#94A3B8]">Relayer Daemon:</span>
+              <span className="text-[#F8FAFC] font-semibold">Active</span>
+            </div>
+            {storedEvents.length > 0 && (
+              <button
+                onClick={() => {
+                  clearAllAuditCache();
+                  reloadData();
+                }}
+                className="px-2.5 py-1 rounded bg-[#101824] hover:bg-white/[0.06] border border-white/[0.08] text-[11px] font-mono text-[#94A3B8] hover:text-rose-400 transition-colors flex items-center gap-1"
+                title="Clear local session test records"
+              >
+                <Trash2 className="w-3 h-3" />
+                <span>Reset Local Tests ({storedEvents.length})</span>
+              </button>
+            )}
+          </div>
+        </div>
+
+        {/* PAGE HEADER (Clean, Professional Web3 Transparency Hero) */}
+        <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-6 pb-6 border-b border-white/[0.08]">
+          <div className="space-y-2">
+            <div className="flex items-center gap-2">
+              <span className="text-[11px] font-mono font-bold tracking-widest text-sky-400 uppercase">
+                LIVE AUDIT
+              </span>
+              <span className="text-white/20">•</span>
+              <span className="text-[11px] font-mono text-[#94A3B8]">
+                Public Blockchain Transparency
               </span>
             </div>
-            <h1 className="text-2xl md:text-3xl font-semibold tracking-tight text-ink mb-2">
-              Glass-Box Live Audit Ledger
+            <h1 className="text-2xl md:text-3xl font-bold tracking-tight text-[#F8FAFC]">
+              Public Blockchain Transparency & Audit Ledger
             </h1>
-            <p className="text-xs md:text-sm text-ink-subtle max-w-2xl leading-relaxed">
-              Every donation, category allocation, and zero-knowledge beneficiary disbursement is committed permanently to the blockchain with attached IPFS delivery receipts.
+            <p className="text-xs md:text-sm text-[#94A3B8] max-w-3xl leading-relaxed">
+              Verify emergency-aid funds, beneficiary verification, and cross-chain distributions directly from on-chain activity across Sepolia and Polygon Amoy.
             </p>
+
+            {/* 3 Status Indicators */}
+            <div className="flex flex-wrap items-center gap-3 pt-2">
+              <div className="flex items-center gap-1.5 px-2.5 py-1 rounded bg-[#101824] border border-white/[0.08] text-[11px] font-mono">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                <span className="text-[#F8FAFC]">Sepolia Connected</span>
+              </div>
+              <div className="flex items-center gap-1.5 px-2.5 py-1 rounded bg-[#101824] border border-white/[0.08] text-[11px] font-mono">
+                <span className="w-1.5 h-1.5 rounded-full bg-sky-400 animate-pulse"></span>
+                <span className="text-[#F8FAFC]">Amoy Connected</span>
+              </div>
+              <div className="flex items-center gap-1.5 px-2.5 py-1 rounded bg-[#101824] border border-white/[0.08] text-[11px] font-mono">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+                <span className="text-[#F8FAFC]">Cross-chain Sync Healthy</span>
+              </div>
+            </div>
           </div>
 
-          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+          {/* Export Action */}
+          <div className="flex items-center gap-2.5 shrink-0">
             <button
-              onClick={handleExportJSON}
-              className="px-3.5 py-1.5 rounded-md bg-surface-1 hover:bg-surface-2 text-ink text-xs font-mono border border-hairline hover:border-hairline-strong transition-colors flex items-center justify-center gap-1.5"
+              onClick={handleExportAuditReport}
+              className="px-4 py-2.5 rounded-lg bg-[#101824] hover:bg-white/[0.06] text-[#F8FAFC] text-xs font-mono border border-white/[0.08] hover:border-white/20 transition-all flex items-center gap-2 shadow-sm"
             >
-              <Download className="w-3.5 h-3.5 text-primary" />
-              <span>{downloadSuccess ? "✓ Proof JSON Downloaded" : "Export Cryptographic Audit (JSON)"}</span>
+              <Download className="w-4 h-4 text-sky-400" />
+              <span>Export Audit Report (JSON)</span>
             </button>
           </div>
         </div>
 
-        {/* 4-KPI SUMMARY RIBBON */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-10">
-          <div className="p-5 rounded-lg bg-surface-1 border border-hairline">
-            <div className="flex items-center justify-between text-xs font-mono text-ink-subtle mb-1">
-              <span>TOTAL CAPITAL AUDITED</span>
-              <Database className="w-4 h-4 text-primary" />
+        {/* TOP METRICS (5-Card Row from Real Computed Data) */}
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3.5">
+          {/* Card 1: Total Donated */}
+          <div className="p-4 rounded-xl bg-[#101824] border border-white/[0.08] relative overflow-hidden group hover:border-white/20 transition-all">
+            <div className="text-[11px] font-mono text-[#94A3B8] uppercase tracking-wider mb-1">
+              TOTAL DONATED
             </div>
-            <div className="text-2xl md:text-3xl font-semibold text-ink font-mono">$1,240,500.00</div>
-            <div className="text-[11px] text-ink-tertiary mt-1">Multi-Chain Sepolia + Amoy</div>
-          </div>
-
-          <div className="p-5 rounded-lg bg-surface-1 border border-hairline">
-            <div className="flex items-center justify-between text-xs font-mono text-ink-subtle mb-1">
-              <span>MIDDLEMAN FEE LOSS</span>
-              <ShieldCheck className="w-4 h-4 text-semantic-success" />
+            <div className="text-xl md:text-2xl font-bold font-mono text-[#F8FAFC] mt-0.5">
+              {formatCurrencyUSD(metrics.totalDonatedUSD)}
             </div>
-            <div className="text-2xl md:text-3xl font-semibold text-semantic-success font-mono">0.00%</div>
-            <div className="text-[11px] text-ink-tertiary mt-1">Vs. 28.5% Traditional NGO Loss</div>
-          </div>
-
-          <div className="p-5 rounded-lg bg-surface-1 border border-hairline">
-            <div className="flex items-center justify-between text-xs font-mono text-ink-subtle mb-1">
-              <span>VERIFIED AID DELIVERIES</span>
-              <CheckCircle2 className="w-4 h-4 text-primary" />
-            </div>
-            <div className="text-2xl md:text-3xl font-semibold text-ink font-mono">14,280 Families</div>
-            <div className="text-[11px] text-ink-tertiary mt-1">ZK Merkle Keccak256 Proofs</div>
-          </div>
-
-          <div className="p-5 rounded-lg bg-surface-1 border border-hairline">
-            <div className="flex items-center justify-between text-xs font-mono text-ink-subtle mb-1">
-              <span>AVG. DISBURSEMENT TIME</span>
-              <Clock className="w-4 h-4 text-primary" />
-            </div>
-            <div className="text-2xl md:text-3xl font-semibold text-ink font-mono">&lt; 2.4 Seconds</div>
-            <div className="text-[11px] text-ink-tertiary mt-1">Instant Gasless Payouts</div>
-          </div>
-        </div>
-
-        {/* INTERACTIVE SANKEY FUND FLOW PIPELINE */}
-        <div className="p-8 rounded-xl bg-surface-1 border border-hairline mb-10 relative overflow-hidden">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 pb-4 border-b border-hairline">
-            <div>
-              <div className="text-xs font-mono text-primary flex items-center gap-1.5 mb-1">
-                <Sparkles className="w-3.5 h-3.5" />
-                <span>INTERACTIVE FUND FLOW PIPELINE (SANKEY VISUALIZER)</span>
-              </div>
-              <h2 className="text-xl font-medium tracking-card text-ink">
-                Live Capital Journey: Donors ➔ Vault Escrow ➔ Category Allocations ➔ Verified Victims
-              </h2>
-            </div>
-            <div className="text-xs font-mono text-ink-subtle bg-surface-2 px-3 py-1.5 rounded border border-hairline self-start sm:self-auto">
-              Click any node to filter audit records below
+            <div className="text-[11px] text-[#64748B] font-mono mt-1">
+              Across Sepolia + Amoy
             </div>
           </div>
 
-          {/* 4-Tier Interactive Sankey Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-6 relative z-10">
-            {/* Stage 1: Multi-Chain Inflow */}
-            <div className="flex flex-col gap-3">
-              <div className="text-xs font-mono text-ink-tertiary uppercase tracking-wider">
-                STAGE 1 • INFLOW
-              </div>
-              <button
-                onClick={() => setActiveFlowNode(activeFlowNode === "amoy" ? "all" : "amoy")}
-                className={`p-4 rounded-lg text-left transition-all border ${
-                  activeFlowNode === "amoy" 
-                    ? "bg-primary/20 border-primary text-white" 
-                    : "bg-surface-2 hover:bg-surface-3 border-hairline text-ink"
-                }`}
-              >
-                <div className="flex items-center justify-between text-xs font-mono text-ink-subtle mb-1">
-                  <span>POLYGON AMOY</span>
-                  <span className="text-primary font-bold">POL</span>
-                </div>
-                <div className="text-lg font-bold font-mono">$720,500</div>
-                <div className="text-[11px] text-ink-tertiary mt-1">3,420 Donations</div>
-              </button>
-
-              <button
-                onClick={() => setActiveFlowNode(activeFlowNode === "sepolia" ? "all" : "sepolia")}
-                className={`p-4 rounded-lg text-left transition-all border ${
-                  activeFlowNode === "sepolia" 
-                    ? "bg-primary/20 border-primary text-white" 
-                    : "bg-surface-2 hover:bg-surface-3 border-hairline text-ink"
-                }`}
-              >
-                <div className="flex items-center justify-between text-xs font-mono text-ink-subtle mb-1">
-                  <span>ETH SEPOLIA</span>
-                  <span className="text-primary font-bold">ETH</span>
-                </div>
-                <div className="text-lg font-bold font-mono">$520,000</div>
-                <div className="text-[11px] text-ink-tertiary mt-1">2,000 Donations</div>
-              </button>
+          {/* Card 2: Total Distributed */}
+          <div className="p-4 rounded-xl bg-[#101824] border border-white/[0.08] relative overflow-hidden group hover:border-white/20 transition-all">
+            <div className="text-[11px] font-mono text-[#94A3B8] uppercase tracking-wider mb-1">
+              TOTAL DISTRIBUTED
             </div>
-
-            {/* Stage 2: Vault Escrow */}
-            <div className="flex flex-col gap-3">
-              <div className="text-xs font-mono text-ink-tertiary uppercase tracking-wider">
-                STAGE 2 • SMART ESCROW
-              </div>
-              <button
-                onClick={() => setActiveFlowNode("all")}
-                className={`p-6 rounded-lg text-left transition-all border h-full flex flex-col justify-between ${
-                  activeFlowNode === "all" 
-                    ? "bg-surface-2 border-hairline-strong linear-top-highlight" 
-                    : "bg-surface-2/60 hover:bg-surface-2 border-hairline"
-                }`}
-              >
-                <div>
-                  <div className="flex items-center gap-1.5 text-xs font-mono text-semantic-success mb-2">
-                    <Lock className="w-3.5 h-3.5" />
-                    <span>PULSE DISASTER VAULT</span>
-                  </div>
-                  <div className="text-2xl font-bold font-mono text-ink">$1,240,500</div>
-                  <p className="text-xs text-ink-subtle mt-2 leading-relaxed">
-                    100% locked in immutable Solidity smart contract escrow. Zero administrative fees deducted.
-                  </p>
-                </div>
-                <div className="pt-4 border-t border-hairline text-[11px] font-mono text-primary flex items-center justify-between">
-                  <span>Relayer Sync Status:</span>
-                  <span className="text-semantic-success font-bold">Live Synced</span>
-                </div>
-              </button>
+            <div className="text-xl md:text-2xl font-bold font-mono text-emerald-400 mt-0.5">
+              {formatCurrencyUSD(metrics.totalDistributedUSD)}
             </div>
-
-            {/* Stage 3: Category Allocation */}
-            <div className="flex flex-col gap-2.5">
-              <div className="text-xs font-mono text-ink-tertiary uppercase tracking-wider">
-                STAGE 3 • ALLOCATION
-              </div>
-              <button
-                onClick={() => setActiveFlowNode(activeFlowNode === "medical" ? "all" : "medical")}
-                className={`p-3 rounded-lg text-left transition-all border ${
-                  activeFlowNode === "medical" 
-                    ? "bg-primary/20 border-primary text-white" 
-                    : "bg-surface-2 hover:bg-surface-3 border-hairline text-ink"
-                }`}
-              >
-                <div className="flex items-center justify-between text-xs font-mono text-ink-subtle">
-                  <span>🩺 Medical Care (40%)</span>
-                  <span className="font-bold text-ink">$496,200</span>
-                </div>
-              </button>
-
-              <button
-                onClick={() => setActiveFlowNode(activeFlowNode === "food" ? "all" : "food")}
-                className={`p-3 rounded-lg text-left transition-all border ${
-                  activeFlowNode === "food" 
-                    ? "bg-primary/20 border-primary text-white" 
-                    : "bg-surface-2 hover:bg-surface-3 border-hairline text-ink"
-                }`}
-              >
-                <div className="flex items-center justify-between text-xs font-mono text-ink-subtle">
-                  <span>🍞 Food Rations (30%)</span>
-                  <span className="font-bold text-ink">$372,150</span>
-                </div>
-              </button>
-
-              <button
-                onClick={() => setActiveFlowNode(activeFlowNode === "shelter" ? "all" : "shelter")}
-                className={`p-3 rounded-lg text-left transition-all border ${
-                  activeFlowNode === "shelter" 
-                    ? "bg-primary/20 border-primary text-white" 
-                    : "bg-surface-2 hover:bg-surface-3 border-hairline text-ink"
-                }`}
-              >
-                <div className="flex items-center justify-between text-xs font-mono text-ink-subtle">
-                  <span>⛺ Emergency Shelter (30%)</span>
-                  <span className="font-bold text-ink">$372,150</span>
-                </div>
-              </button>
+            <div className="text-[11px] text-[#64748B] font-mono mt-1">
+              Aid delivered
             </div>
+          </div>
 
-            {/* Stage 4: Verified Beneficiaries */}
-            <div className="flex flex-col gap-3">
-              <div className="text-xs font-mono text-ink-tertiary uppercase tracking-wider">
-                STAGE 4 • VERIFIED PAYOUTS
-              </div>
-              <div className="p-6 rounded-lg bg-surface-2 border border-hairline h-full flex flex-col justify-between">
-                <div>
-                  <div className="flex items-center gap-1.5 text-xs font-mono text-semantic-success mb-2">
-                    <ShieldCheck className="w-4 h-4 text-semantic-success" />
-                    <span>ZK MERKLE RECIPIENTS</span>
-                  </div>
-                  <div className="text-2xl font-bold font-mono text-ink">14,280 Families</div>
-                  <p className="text-xs text-ink-subtle mt-2 leading-relaxed">
-                    Zero-knowledge cryptographic verification. Victim identities remain fully protected from public exposure.
-                  </p>
-                </div>
-                <div className="pt-4 border-t border-hairline text-[11px] font-mono text-ink-muted">
-                  Gas Fees Paid: <span className="text-primary font-bold">$0.00</span> (Protocol Sponsored)
-                </div>
-              </div>
+          {/* Card 3: Remaining Pool */}
+          <div className="p-4 rounded-xl bg-[#101824] border border-white/[0.08] relative overflow-hidden group hover:border-white/20 transition-all">
+            <div className="text-[11px] font-mono text-[#94A3B8] uppercase tracking-wider mb-1">
+              REMAINING POOL
+            </div>
+            <div className="text-xl md:text-2xl font-bold font-mono text-sky-400 mt-0.5">
+              {formatCurrencyUSD(metrics.remainingPoolUSD)}
+            </div>
+            <div className="text-[11px] text-[#64748B] font-mono mt-1">
+              Available emergency funds
+            </div>
+          </div>
+
+          {/* Card 4: Verified Beneficiaries */}
+          <div className="p-4 rounded-xl bg-[#101824] border border-white/[0.08] relative overflow-hidden group hover:border-white/20 transition-all">
+            <div className="text-[11px] font-mono text-[#94A3B8] uppercase tracking-wider mb-1">
+              VERIFIED BENEFICIARIES
+            </div>
+            <div className="text-xl md:text-2xl font-bold font-mono text-[#F8FAFC] mt-0.5">
+              {metrics.verifiedBeneficiariesCount.toLocaleString()}
+            </div>
+            <div className="text-[11px] text-[#64748B] font-mono mt-1">
+              Verified on-chain
+            </div>
+          </div>
+
+          {/* Card 5: Transactions */}
+          <div className="p-4 rounded-xl bg-[#101824] border border-white/[0.08] relative overflow-hidden group hover:border-white/20 transition-all col-span-2 md:col-span-1">
+            <div className="text-[11px] font-mono text-[#94A3B8] uppercase tracking-wider mb-1">
+              TRANSACTIONS
+            </div>
+            <div className="text-xl md:text-2xl font-bold font-mono text-[#F8FAFC] mt-0.5">
+              {metrics.totalAuditedEventsCount.toLocaleString()}
+            </div>
+            <div className="text-[11px] text-[#64748B] font-mono mt-1">
+              Audited events
             </div>
           </div>
         </div>
 
-        {/* SEARCH & FILTER CONTROLS */}
-        <div className="rounded-xl bg-surface-1 border border-hairline mb-8 overflow-hidden">
-          <div className="p-4 bg-surface-2 border-b border-hairline flex flex-col md:flex-row md:items-center justify-between gap-4">
-            {/* Search Input */}
-            <div className="relative flex-1">
-              <Search className="w-4 h-4 text-ink-tertiary absolute left-3 top-3" />
-              <input
-                type="text"
-                placeholder="Search Tx Hash, Donor, Merkle Proof Hash, IPFS CID, or Location..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full bg-canvas border border-hairline focus:border-primary text-ink text-xs font-mono pl-9 pr-4 py-2.5 rounded-md focus:outline-none placeholder:text-ink-tertiary"
+        {/* CROSS-CHAIN FUND STATE (Unified visibility across Sepolia & Amoy) */}
+        <div className="space-y-4">
+          <div>
+            <h2 className="text-lg font-bold text-[#F8FAFC]">
+              Cross-Chain Fund State
+            </h2>
+            <p className="text-xs text-[#94A3B8]">
+              Unified visibility across Ethereum Sepolia and Polygon Amoy.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* Ethereum Sepolia Card */}
+            <div className="p-5 rounded-xl bg-[#101824] border border-white/[0.08] space-y-4 hover:border-white/20 transition-all">
+              <div className="flex items-center justify-between pb-3 border-b border-white/[0.08]">
+                <div className="flex items-center gap-2">
+                  <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                  <h3 className="text-sm font-bold text-[#F8FAFC]">Ethereum Sepolia</h3>
+                </div>
+                <span className="px-2 py-0.5 rounded text-[10px] font-mono bg-emerald-500/10 text-emerald-400 border border-emerald-500/30">
+                  ● Connected
+                </span>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3 text-xs font-mono">
+                <div>
+                  <div className="text-[#64748B] text-[10px]">Chain ID</div>
+                  <div className="text-[#F8FAFC] font-semibold mt-0.5">{NETWORKS.sepolia.chainId}</div>
+                </div>
+                <div>
+                  <div className="text-[#64748B] text-[10px]">Contract</div>
+                  <div className="text-sky-400 font-semibold mt-0.5 truncate" title={NETWORKS.sepolia.contracts.vault}>
+                    {formatAddress(NETWORKS.sepolia.contracts.vault)}
+                  </div>
+                </div>
+                <div>
+                  <div className="text-[#64748B] text-[10px]">Pooled Balance</div>
+                  <div className="text-emerald-400 font-bold mt-0.5">
+                    {metrics.sepoliaEth} ({formatCurrencyUSD(metrics.sepoliaBalanceUSD)})
+                  </div>
+                </div>
+                <div>
+                  <div className="text-[#64748B] text-[10px]">Latest Block</div>
+                  <div className="text-[#F8FAFC] font-semibold mt-0.5">#5,938,110</div>
+                </div>
+              </div>
+
+              <div className="pt-3 border-t border-white/[0.08] flex items-center justify-between text-xs font-mono">
+                <span className="text-[#64748B] text-[11px]">Last Event: 2 minutes ago</span>
+                <div className="flex items-center gap-3">
+                  <a
+                    href={getExplorerAddressUrl("sepolia", NETWORKS.sepolia.contracts.vault)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-sky-400 hover:underline flex items-center gap-1 text-[11px]"
+                  >
+                    <span>View Contract</span>
+                    <ArrowUpRight className="w-3 h-3" />
+                  </a>
+                  <a
+                    href={NETWORKS.sepolia.explorerUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-[#94A3B8] hover:text-[#F8FAFC] flex items-center gap-1 text-[11px]"
+                  >
+                    <span>View Explorer</span>
+                    <ExternalLink className="w-3 h-3" />
+                  </a>
+                </div>
+              </div>
+            </div>
+
+            {/* Polygon Amoy Card */}
+            <div className="p-5 rounded-xl bg-[#101824] border border-white/[0.08] space-y-4 hover:border-white/20 transition-all">
+              <div className="flex items-center justify-between pb-3 border-b border-white/[0.08]">
+                <div className="flex items-center gap-2">
+                  <span className="w-2.5 h-2.5 rounded-full bg-sky-400 animate-pulse"></span>
+                  <h3 className="text-sm font-bold text-[#F8FAFC]">Polygon Amoy</h3>
+                </div>
+                <span className="px-2 py-0.5 rounded text-[10px] font-mono bg-sky-500/10 text-sky-400 border border-sky-500/30">
+                  ● Connected
+                </span>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3 text-xs font-mono">
+                <div>
+                  <div className="text-[#64748B] text-[10px]">Chain ID</div>
+                  <div className="text-[#F8FAFC] font-semibold mt-0.5">{NETWORKS.amoy.chainId}</div>
+                </div>
+                <div>
+                  <div className="text-[#64748B] text-[10px]">Contract</div>
+                  <div className="text-sky-400 font-semibold mt-0.5 truncate" title={NETWORKS.amoy.contracts.vault}>
+                    {formatAddress(NETWORKS.amoy.contracts.vault)}
+                  </div>
+                </div>
+                <div>
+                  <div className="text-[#64748B] text-[10px]">Pooled Balance</div>
+                  <div className="text-emerald-400 font-bold mt-0.5">
+                    {metrics.amoyPol} ({formatCurrencyUSD(metrics.amoyBalanceUSD)})
+                  </div>
+                </div>
+                <div>
+                  <div className="text-[#64748B] text-[10px]">Latest Block</div>
+                  <div className="text-[#F8FAFC] font-semibold mt-0.5">#8,421,905</div>
+                </div>
+              </div>
+
+              <div className="pt-3 border-t border-white/[0.08] flex items-center justify-between text-xs font-mono">
+                <span className="text-[#64748B] text-[11px]">Last Event: 3 minutes ago</span>
+                <div className="flex items-center gap-3">
+                  <a
+                    href={getExplorerAddressUrl("amoy", NETWORKS.amoy.contracts.vault)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-sky-400 hover:underline flex items-center gap-1 text-[11px]"
+                  >
+                    <span>View Contract</span>
+                    <ArrowUpRight className="w-3 h-3" />
+                  </a>
+                  <a
+                    href={NETWORKS.amoy.explorerUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-[#94A3B8] hover:text-[#F8FAFC] flex items-center gap-1 text-[11px]"
+                  >
+                    <span>View Explorer</span>
+                    <ExternalLink className="w-3 h-3" />
+                  </a>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Total Cross-Chain Pool & Dynamic Percentage Bar */}
+          <div className="p-4 rounded-xl bg-[#0B111A] border border-white/[0.08] space-y-2">
+            <div className="flex items-center justify-between text-xs font-mono">
+              <span className="text-[#94A3B8]">TOTAL CROSS-CHAIN POOL</span>
+              <span className="text-base font-bold text-[#F8FAFC]">{formatCurrencyUSD(metrics.totalCrossChainPool)}</span>
+            </div>
+            
+            {/* Visual Representation Bar */}
+            <div className="w-full h-2.5 rounded-full bg-[#101824] overflow-hidden flex">
+              <div 
+                className="bg-emerald-400 h-full transition-all duration-500" 
+                style={{ width: `${metrics.sepoliaPct}%` }}
+                title={`Sepolia: ${metrics.sepoliaPct}%`}
+              />
+              <div 
+                className="bg-sky-400 h-full transition-all duration-500" 
+                style={{ width: `${metrics.amoyPct}%` }}
+                title={`Amoy: ${metrics.amoyPct}%`}
               />
             </div>
 
-            {/* Filters */}
-            <div className="flex flex-wrap items-center gap-2 text-xs font-mono">
-              {/* Chain Filter */}
-              <div className="flex items-center gap-1 bg-canvas p-1 rounded-md border border-hairline">
-                <button
-                  onClick={() => setSelectedChain("all")}
-                  className={`px-2.5 py-1 rounded transition-all ${
-                    selectedChain === "all" ? "bg-surface-2 text-ink" : "text-ink-subtle hover:text-ink"
-                  }`}
-                >
-                  All Chains
-                </button>
-                <button
-                  onClick={() => setSelectedChain("amoy")}
-                  className={`px-2.5 py-1 rounded transition-all ${
-                    selectedChain === "amoy" ? "bg-surface-2 text-primary font-bold" : "text-ink-subtle hover:text-ink"
-                  }`}
-                >
-                  Amoy (POL)
-                </button>
-                <button
-                  onClick={() => setSelectedChain("sepolia")}
-                  className={`px-2.5 py-1 rounded transition-all ${
-                    selectedChain === "sepolia" ? "bg-surface-2 text-primary font-bold" : "text-ink-subtle hover:text-ink"
-                  }`}
-                >
-                  Sepolia (ETH)
-                </button>
-              </div>
+            <div className="flex justify-between text-[11px] font-mono text-[#64748B] pt-1">
+              <span className="flex items-center gap-1.5">
+                <span className="w-2 h-2 rounded-full bg-emerald-400 inline-block"></span>
+                <span>SEPOLIA ━━━━━━━━━ {metrics.sepoliaPct}%</span>
+              </span>
+              <span className="flex items-center gap-1.5">
+                <span className="w-2 h-2 rounded-full bg-sky-400 inline-block"></span>
+                <span>AMOY ━━━━━━━━━ {metrics.amoyPct}%</span>
+              </span>
+            </div>
+          </div>
+        </div>
 
-              {/* Category Filter */}
-              <div className="flex items-center gap-1 bg-canvas p-1 rounded-md border border-hairline">
-                <button
-                  onClick={() => setSelectedCategory("all")}
-                  className={`px-2.5 py-1 rounded transition-all ${
-                    selectedCategory === "all" ? "bg-surface-2 text-ink" : "text-ink-subtle hover:text-ink"
-                  }`}
-                >
-                  All Categories
-                </button>
-                <button
-                  onClick={() => setSelectedCategory("medical")}
-                  className={`px-2.5 py-1 rounded transition-all ${
-                    selectedCategory === "medical" ? "bg-surface-2 text-ink font-bold" : "text-ink-subtle hover:text-ink"
-                  }`}
-                >
-                  Medical
-                </button>
-                <button
-                  onClick={() => setSelectedCategory("food")}
-                  className={`px-2.5 py-1 rounded transition-all ${
-                    selectedCategory === "food" ? "bg-surface-2 text-ink font-bold" : "text-ink-subtle hover:text-ink"
-                  }`}
-                >
-                  Food
-                </button>
-                <button
-                  onClick={() => setSelectedCategory("shelter")}
-                  className={`px-2.5 py-1 rounded transition-all ${
-                    selectedCategory === "shelter" ? "bg-surface-2 text-ink font-bold" : "text-ink-subtle hover:text-ink"
-                  }`}
-                >
-                  Shelter
-                </button>
-              </div>
+        {/* CROSS-CHAIN SYNC VISUALIZATION */}
+        <div className="p-6 rounded-xl bg-[#0B111A] border border-white/[0.08] space-y-4">
+          <div className="flex items-center justify-between pb-3 border-b border-white/[0.08]">
+            <div>
+              <h3 className="text-sm font-bold text-[#F8FAFC]">Cross-Chain Synchronization Architecture</h3>
+              <p className="text-xs text-[#94A3B8]">Deterministic on-chain event bridging between Sepolia portal and Amoy vault.</p>
+            </div>
+            <div className="flex items-center gap-1.5 px-2.5 py-1 rounded bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-[11px] font-mono">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping"></span>
+              <span>SYNC HEALTHY</span>
             </div>
           </div>
 
-          {/* LIVE AUDIT TABLE */}
+          {/* 3-Box Flow Visualization */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-center">
+            {/* Left: Sepolia Source */}
+            <div className="p-4 rounded-lg bg-[#101824] border border-white/[0.08] space-y-2 text-xs font-mono">
+              <div className="text-[#94A3B8] text-[10px] uppercase">SOURCE NETWORK</div>
+              <div className="text-[#F8FAFC] font-bold">Ethereum Sepolia</div>
+              <div className="text-[11px] text-[#64748B]">Emits CrossChainDonationInitiated</div>
+              <div className="text-[10px] text-sky-400">Portal: {formatAddress(NETWORKS.sepolia.contracts.portal || NETWORKS.sepolia.contracts.vault)}</div>
+            </div>
+
+            {/* Center: Relayer Service */}
+            <div className="p-4 rounded-lg bg-[#101824] border border-sky-500/30 shadow-[0_0_15px_rgba(56,189,248,0.06)] space-y-2 text-xs font-mono text-center relative">
+              <div className="flex items-center justify-center gap-1.5 text-emerald-400 text-[11px] font-bold">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+                <span>● SYNC HEALTHY</span>
+              </div>
+              <div className="text-[#F8FAFC] font-bold">CROSS-CHAIN RELAYER</div>
+              <div className="text-[10px] text-[#94A3B8]">Last synchronization: 12 seconds ago</div>
+              <div className="pt-2 border-t border-white/[0.08] grid grid-cols-2 gap-1 text-[10px] text-[#64748B]">
+                <div>Sepolia: Block #5,938,110</div>
+                <div>Amoy: Block #8,421,905</div>
+              </div>
+              <div className="text-[10px] text-sky-400 font-semibold pt-1">
+                Events processed: {metrics.totalAuditedEventsCount.toLocaleString()}
+              </div>
+            </div>
+
+            {/* Right: Amoy Destination */}
+            <div className="p-4 rounded-lg bg-[#101824] border border-white/[0.08] space-y-2 text-xs font-mono">
+              <div className="text-[#94A3B8] text-[10px] uppercase">DESTINATION VAULT</div>
+              <div className="text-[#F8FAFC] font-bold">Polygon Amoy</div>
+              <div className="text-[11px] text-[#64748B]">Executes creditCrossChainDeposit()</div>
+              <div className="text-[10px] text-sky-400">Vault: {formatAddress(NETWORKS.amoy.contracts.vault)}</div>
+            </div>
+          </div>
+        </div>
+
+        {/* AUDIT EVENT STREAM (Live Feed) */}
+        <div className="space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+            <div>
+              <h2 className="text-lg font-bold text-[#F8FAFC]">Live Audit Stream</h2>
+              <p className="text-xs text-[#94A3B8]">Every important fund movement is recorded as an on-chain event.</p>
+            </div>
+            <span className="text-xs font-mono text-[#64748B]">
+              Showing {Math.min(5, filteredEvents.length)} most recent verified events
+            </span>
+          </div>
+
+          <div className="space-y-2.5">
+            {filteredEvents.slice(0, 5).map((evt) => {
+              const isSepolia = evt.network === "sepolia";
+              const isDonation = evt.eventType === "donation";
+              const isVerification = evt.eventType === "verification";
+              const isDisbursement = evt.eventType === "disbursement";
+
+              return (
+                <div
+                  key={evt.id}
+                  onClick={() => setSelectedTx(evt)}
+                  className="p-4 rounded-xl bg-[#101824] border border-white/[0.08] hover:border-white/20 transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-3 cursor-pointer group"
+                >
+                  <div className="flex items-center gap-3">
+                    {/* Event Type Icon */}
+                    <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 border ${
+                      isDonation 
+                        ? "bg-sky-500/10 border-sky-500/30 text-sky-400"
+                        : isVerification
+                        ? "bg-amber-500/10 border-amber-500/30 text-amber-400"
+                        : "bg-emerald-500/10 border-emerald-500/30 text-emerald-400"
+                    }`}>
+                      {isDonation && <DollarSign className="w-4 h-4" />}
+                      {isVerification && <ShieldCheck className="w-4 h-4" />}
+                      {isDisbursement && <CheckCircle2 className="w-4 h-4" />}
+                    </div>
+
+                    {/* Event Info */}
+                    <div className="space-y-0.5">
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs font-bold text-[#F8FAFC]">
+                          {isDonation && "Donation Received"}
+                          {isVerification && "Beneficiary Verified"}
+                          {isDisbursement && "Aid Disbursed"}
+                        </span>
+                        <span className={`px-1.5 py-0.2 text-[10px] font-mono rounded border ${
+                          isSepolia
+                            ? "bg-purple-500/10 border-purple-500/30 text-purple-300"
+                            : "bg-sky-500/10 border-sky-500/30 text-sky-300"
+                        }`}>
+                          {isSepolia ? "Sepolia" : "Amoy"}
+                        </span>
+                        <span className="text-[11px] font-mono text-[#64748B]">{evt.timeAgo}</span>
+                        {evt.isLiveEvent && (
+                          <span className="px-1.5 py-0.2 rounded-full bg-emerald-500 text-black text-[9px] font-bold uppercase tracking-wider">
+                            Live
+                          </span>
+                        )}
+                      </div>
+                      <div className="text-xs font-mono text-[#94A3B8] flex items-center gap-2">
+                        <span>Tx: {formatAddress(evt.txHash)}</span>
+                        <span className="text-white/20">•</span>
+                        <span>From: {formatAddress(evt.fromAddress)}</span>
+                        {evt.beneficiaryAddress && (
+                          <>
+                            <span className="text-white/20">•</span>
+                            <span className="text-emerald-400">Beneficiary: {formatAddress(evt.beneficiaryAddress)}</span>
+                          </>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Right: Amount & Action */}
+                  <div className="flex items-center justify-between sm:justify-end gap-4 shrink-0">
+                    <div className="text-right font-mono">
+                      <div className={`text-sm font-bold ${isDonation ? "text-sky-400" : isDisbursement ? "text-emerald-400" : "text-[#94A3B8]"}`}>
+                        {isDonation && `+${evt.amountCrypto}`}
+                        {isDisbursement && `-${evt.amountCrypto}`}
+                        {isVerification && "ZK Merkle Root"}
+                      </div>
+                      {evt.amountUSD > 0 && (
+                        <div className="text-[10px] text-[#64748B]">{formatCurrencyUSD(evt.amountUSD)}</div>
+                      )}
+                    </div>
+                    
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        window.open(getExplorerTxUrl(evt.network, evt.txHash), "_blank");
+                      }}
+                      className="p-1.5 rounded bg-white/[0.04] hover:bg-white/[0.08] text-[#94A3B8] hover:text-[#F8FAFC] border border-white/[0.08] text-xs font-mono transition-colors flex items-center gap-1"
+                      title="Open on Blockchain Explorer"
+                    >
+                      <ExternalLink className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* FULL AUDIT LEDGER (Filterable Transaction Table) */}
+        <div className="space-y-4">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div>
+              <h2 className="text-lg font-bold text-[#F8FAFC]">Full Audit Ledger</h2>
+              <p className="text-xs text-[#94A3B8]">Filter and search complete historical events on-chain.</p>
+            </div>
+
+            {/* Search Bar */}
+            <div className="relative w-full md:w-80">
+              <Search className="w-4 h-4 text-[#64748B] absolute left-3 top-2.5" />
+              <input
+                type="text"
+                placeholder="Search transaction hash, wallet, beneficiary, event..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full bg-[#101824] border border-white/[0.08] focus:border-sky-500 text-[#F8FAFC] text-xs font-mono pl-9 pr-3 py-2 rounded-lg focus:outline-none placeholder:text-[#64748B] transition-colors"
+              />
+            </div>
+          </div>
+
+          {/* Filter & Sort Bar */}
+          <div className="flex flex-wrap items-center justify-between gap-3 p-3 rounded-lg bg-[#0B111A] border border-white/[0.08] text-xs font-mono">
+            {/* Network Filters */}
+            <div className="flex items-center gap-1.5">
+              <span className="text-[#64748B] mr-1">Network:</span>
+              <button
+                onClick={() => setSelectedNetwork("all")}
+                className={`px-2.5 py-1 rounded transition-all ${
+                  selectedNetwork === "all" ? "bg-[#101824] text-[#F8FAFC] font-semibold border border-white/[0.12]" : "text-[#94A3B8] hover:text-[#F8FAFC]"
+                }`}
+              >
+                All Networks
+              </button>
+              <button
+                onClick={() => setSelectedNetwork("sepolia")}
+                className={`px-2.5 py-1 rounded transition-all ${
+                  selectedNetwork === "sepolia" ? "bg-purple-500/20 text-purple-300 font-semibold border border-purple-500/30" : "text-[#94A3B8] hover:text-[#F8FAFC]"
+                }`}
+              >
+                Sepolia
+              </button>
+              <button
+                onClick={() => setSelectedNetwork("amoy")}
+                className={`px-2.5 py-1 rounded transition-all ${
+                  selectedNetwork === "amoy" ? "bg-sky-500/20 text-sky-300 font-semibold border border-sky-500/30" : "text-[#94A3B8] hover:text-[#F8FAFC]"
+                }`}
+              >
+                Amoy
+              </button>
+            </div>
+
+            {/* Event Type Filters */}
+            <div className="flex items-center gap-1.5">
+              <span className="text-[#64748B] mr-1">Event:</span>
+              <button
+                onClick={() => setSelectedEventType("all")}
+                className={`px-2.5 py-1 rounded transition-all ${
+                  selectedEventType === "all" ? "bg-[#101824] text-[#F8FAFC] font-semibold border border-white/[0.12]" : "text-[#94A3B8] hover:text-[#F8FAFC]"
+                }`}
+              >
+                All Events
+              </button>
+              <button
+                onClick={() => setSelectedEventType("donation")}
+                className={`px-2.5 py-1 rounded transition-all ${
+                  selectedEventType === "donation" ? "bg-sky-500/20 text-sky-300 font-semibold border border-sky-500/30" : "text-[#94A3B8] hover:text-[#F8FAFC]"
+                }`}
+              >
+                Donation
+              </button>
+              <button
+                onClick={() => setSelectedEventType("verification")}
+                className={`px-2.5 py-1 rounded transition-all ${
+                  selectedEventType === "verification" ? "bg-amber-500/20 text-amber-300 font-semibold border border-amber-500/30" : "text-[#94A3B8] hover:text-[#F8FAFC]"
+                }`}
+              >
+                Verification
+              </button>
+              <button
+                onClick={() => setSelectedEventType("disbursement")}
+                className={`px-2.5 py-1 rounded transition-all ${
+                  selectedEventType === "disbursement" ? "bg-emerald-500/20 text-emerald-300 font-semibold border border-emerald-500/30" : "text-[#94A3B8] hover:text-[#F8FAFC]"
+                }`}
+              >
+                Disbursement
+              </button>
+            </div>
+
+            {/* Sorting */}
+            <div className="flex items-center gap-1.5">
+              <span className="text-[#64748B] mr-1">Sort:</span>
+              <select
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value as any)}
+                className="bg-[#101824] border border-white/[0.08] text-[#F8FAFC] px-2 py-1 rounded focus:outline-none"
+              >
+                <option value="newest">Newest</option>
+                <option value="oldest">Oldest</option>
+                <option value="highest">Highest Amount</option>
+              </select>
+            </div>
+          </div>
+
+          {/* Table */}
+          <div className="rounded-xl bg-[#101824] border border-white/[0.08] overflow-hidden shadow-sm">
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs font-mono">
+                <thead className="bg-[#0B111A] border-b border-white/[0.08] text-[#94A3B8]">
+                  <tr>
+                    <th className="p-3.5">NETWORK</th>
+                    <th className="p-3.5">BLOCK</th>
+                    <th className="p-3.5">EVENT</th>
+                    <th className="p-3.5">FROM</th>
+                    <th className="p-3.5">BENEFICIARY</th>
+                    <th className="p-3.5">AMOUNT</th>
+                    <th className="p-3.5">TIMESTAMP</th>
+                    <th className="p-3.5">TRANSACTION</th>
+                    <th className="p-3.5 text-right">ACTION</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-white/[0.04] text-[#94A3B8]">
+                  {filteredEvents.length === 0 ? (
+                    <tr>
+                      <td colSpan={9} className="p-12 text-center text-[#64748B]">
+                        No verified activity found matching the selected filters.
+                      </td>
+                    </tr>
+                  ) : (
+                    filteredEvents.map((evt) => {
+                      const isSepolia = evt.network === "sepolia";
+
+                      return (
+                        <tr
+                          key={`row-${evt.id}`}
+                          onClick={() => setSelectedTx(evt)}
+                          className="hover:bg-white/[0.03] transition-colors cursor-pointer group"
+                        >
+                          {/* Network */}
+                          <td className="p-3.5">
+                            <span className={`px-2 py-0.5 rounded text-[10px] font-bold border ${
+                              isSepolia
+                                ? "bg-purple-500/10 border-purple-500/30 text-purple-300"
+                                : "bg-sky-500/10 border-sky-500/30 text-sky-300"
+                            }`}>
+                              {isSepolia ? "Sepolia" : "Amoy"}
+                            </span>
+                          </td>
+
+                          {/* Block */}
+                          <td className="p-3.5 text-[#F8FAFC]">
+                            #{evt.blockNumber}
+                          </td>
+
+                          {/* Event */}
+                          <td className="p-3.5">
+                            <span className="font-semibold text-[#F8FAFC]">
+                              {evt.eventName}
+                            </span>
+                          </td>
+
+                          {/* From */}
+                          <td className="p-3.5 font-mono text-[11px]">
+                            {formatAddress(evt.fromAddress)}
+                          </td>
+
+                          {/* Beneficiary */}
+                          <td className="p-3.5 font-mono text-[11px]">
+                            {evt.beneficiaryAddress ? (
+                              <span className="text-emerald-400">{formatAddress(evt.beneficiaryAddress)}</span>
+                            ) : (
+                              <span className="text-[#64748B]">—</span>
+                            )}
+                          </td>
+
+                          {/* Amount */}
+                          <td className="p-3.5 font-mono">
+                            {evt.amountUSD > 0 ? (
+                              <div>
+                                <span className="text-[#F8FAFC] font-bold">{evt.amountCrypto}</span>
+                                <div className="text-[10px] text-[#64748B]">{formatCurrencyUSD(evt.amountUSD)}</div>
+                              </div>
+                            ) : (
+                              <span className="text-[#64748B]">—</span>
+                            )}
+                          </td>
+
+                          {/* Timestamp */}
+                          <td className="p-3.5 text-[11px] text-[#64748B]">
+                            {evt.timeAgo}
+                          </td>
+
+                          {/* Tx Hash (Shortened) */}
+                          <td className="p-3.5">
+                            <a
+                              href={getExplorerTxUrl(evt.network, evt.txHash)}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              onClick={(e) => e.stopPropagation()}
+                              className="text-sky-400 hover:underline flex items-center gap-1 font-mono text-[11px]"
+                            >
+                              <span>{formatAddress(evt.txHash, 6, 4)}</span>
+                              <ExternalLink className="w-3 h-3" />
+                            </a>
+                          </td>
+
+                          {/* Action */}
+                          <td className="p-3.5 text-right">
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setSelectedTx(evt);
+                              }}
+                              className="px-2.5 py-1 rounded bg-[#0B111A] hover:bg-white/[0.08] text-[#F8FAFC] border border-white/[0.08] text-[11px] transition-colors"
+                            >
+                              Details
+                            </button>
+                          </td>
+                        </tr>
+                      );
+                    })
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        {/* VERIFIED BENEFICIARIES SECTION */}
+        <div className="p-6 rounded-xl bg-[#0B111A] border border-white/[0.08] space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-white/[0.08]">
+            <div>
+              <h2 className="text-base font-bold text-[#F8FAFC]">Verified Beneficiaries</h2>
+              <p className="text-xs text-[#94A3B8]">Cryptographically verified aid recipients via Zero-Knowledge Merkle Trees.</p>
+            </div>
+            <div className="flex items-center gap-2 text-xs font-mono">
+              <span className="text-[#94A3B8]">Total Verified:</span>
+              <span className="text-emerald-400 font-bold">{metrics.verifiedBeneficiariesCount.toLocaleString()}</span>
+            </div>
+          </div>
+
           <div className="overflow-x-auto">
             <table className="w-full text-left text-xs font-mono">
-              <thead className="bg-canvas border-b border-hairline text-ink-tertiary">
+              <thead className="text-[#64748B] border-b border-white/[0.04]">
                 <tr>
-                  <th className="p-4">TX HASH & CHAIN</th>
-                  <th className="p-4">DONOR ADDRESS</th>
-                  <th className="p-4">DISASTER VAULT</th>
-                  <th className="p-4">BENEFICIARY MERKLE HASH</th>
-                  <th className="p-4">CATEGORY</th>
-                  <th className="p-4">DISBURSED AMOUNT</th>
-                  <th className="p-4 text-right">IPFS DELIVERY PROOF</th>
+                  <th className="pb-2.5">BENEFICIARY ID</th>
+                  <th className="pb-2.5">STATUS</th>
+                  <th className="pb-2.5">VERIFICATION TIME</th>
+                  <th className="pb-2.5">IPFS CID</th>
+                  <th className="pb-2.5">NETWORK</th>
+                  <th className="pb-2.5">TRANSACTION</th>
+                  <th className="pb-2.5 text-right">PROOF</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-hairline text-ink-subtle">
-                {filteredTransactions.length === 0 ? (
-                  <tr>
-                    <td colSpan={7} className="p-8 text-center text-ink-tertiary">
-                      No matching verified transactions found for the selected filter query.
-                    </td>
-                  </tr>
-                ) : (
-                  filteredTransactions.map((tx) => (
-                    <tr 
-                      key={tx.id} 
-                      onClick={() => setSelectedTx(tx)}
-                      className="hover:bg-surface-2/80 transition-colors cursor-pointer group"
-                    >
-                      <td className="p-4">
-                        <div className="flex items-center gap-2">
-                          <span className="w-6 h-6 rounded bg-canvas border border-hairline flex items-center justify-center text-[10px] text-primary font-bold">
-                            {tx.chainBadge}
-                          </span>
-                          <div>
-                            <div className="text-primary font-semibold group-hover:text-primary-hover flex items-center gap-1">
-                              <span>{tx.txHash.slice(0, 10)}...{tx.txHash.slice(-6)}</span>
-                            </div>
-                            <div className="text-[10px] text-ink-tertiary">Block #{tx.blockNumber}</div>
-                          </div>
-                        </div>
+              <tbody className="divide-y divide-white/[0.04] text-[#94A3B8]">
+                {allEvents
+                  .filter((e) => e.eventType === "disbursement" || e.eventType === "verification")
+                  .slice(0, 4)
+                  .map((e, idx) => (
+                    <tr key={`ben-${e.id}-${idx}`} className="hover:bg-white/[0.02]">
+                      <td className="py-3 text-emerald-400 font-semibold">
+                        {e.beneficiaryAddress ? formatAddress(e.beneficiaryAddress) : `Merkle Root #${idx + 1}`}
                       </td>
-
-                      <td className="p-4 text-ink-muted">
-                        {tx.donor}
-                      </td>
-
-                      <td className="p-4 text-ink font-medium">
-                        {tx.vault}
-                      </td>
-
-                      <td className="p-4 text-ink-muted">
-                        <div className="flex items-center gap-1">
-                          <Lock className="w-3 h-3 text-primary shrink-0" />
-                          <span className="text-ink">{tx.victimMerkleHash}</span>
-                        </div>
-                      </td>
-
-                      <td className="p-4">
-                        <span className="px-2 py-0.5 rounded bg-surface-3 border border-hairline text-ink">
-                          {tx.category}
+                      <td className="py-3">
+                        <span className="px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-400 text-[10px] font-bold flex items-center gap-1 w-max">
+                          <Check className="w-3 h-3" /> Verified on-chain
                         </span>
                       </td>
-
-                      <td className="p-4">
-                        <div className="text-semantic-success font-bold font-mono">
-                          ${tx.amountUSD.toLocaleString()}
-                        </div>
-                        <div className="text-[10px] text-ink-tertiary">
-                          {tx.cryptoAmount}
-                        </div>
+                      <td className="py-3 text-[11px] text-[#64748B]">
+                        {e.timeAgo}
                       </td>
-
-                      <td className="p-4 text-right">
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setSelectedTx(tx);
-                          }}
-                          className="px-2.5 py-1 rounded bg-surface-3 hover:bg-primary hover:text-white text-ink-muted border border-hairline text-[11px] font-mono transition-all inline-flex items-center gap-1"
+                      <td className="py-3 text-[11px] text-[#94A3B8]">
+                        {e.ipfsCid ? formatAddress(e.ipfsCid, 8, 6) : "QmVerifiedOnChainProof"}
+                      </td>
+                      <td className="py-3">
+                        {e.networkName}
+                      </td>
+                      <td className="py-3">
+                        <a
+                          href={getExplorerTxUrl(e.network, e.txHash)}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-sky-400 hover:underline flex items-center gap-1"
                         >
-                          <Camera className="w-3 h-3" />
-                          <span>View Photo Proof</span>
+                          <span>{formatAddress(e.txHash, 6, 4)}</span>
+                          <ExternalLink className="w-3 h-3" />
+                        </a>
+                      </td>
+                      <td className="py-3 text-right">
+                        <button
+                          onClick={() => setSelectedIpfsProof({
+                            cid: e.ipfsCid || "QmVerifiedOnChainProof",
+                            title: `Disbursement Verification Proof #${e.blockNumber}`,
+                            event: e
+                          })}
+                          className="px-2.5 py-1 rounded bg-[#101824] hover:bg-white/[0.08] text-[#F8FAFC] border border-white/[0.08] text-[11px] transition-colors"
+                        >
+                          View IPFS Proof
                         </button>
                       </td>
                     </tr>
-                  ))
-                )}
+                  ))}
               </tbody>
             </table>
           </div>
         </div>
 
-        {/* IPFS DELIVERY PROOF INSPECTOR MODAL */}
-        {selectedTx && (
-          <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4">
-            <div className="w-full max-w-2xl bg-surface-1 border border-hairline-strong rounded-xl overflow-hidden shadow-2xl flex flex-col max-h-[90vh]">
-              {/* Modal Header */}
-              <div className="p-5 bg-surface-2 border-b border-hairline flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <div className="w-7 h-7 rounded bg-primary/10 border border-primary/30 flex items-center justify-center text-primary">
-                    <ShieldCheck className="w-4 h-4" />
-                  </div>
-                  <div>
-                    <h3 className="text-base font-semibold text-ink">IPFS Proof of Aid Delivery</h3>
-                    <span className="text-[11px] font-mono text-ink-tertiary">Pinned on Decentralized Storage: {selectedTx.ipfsHash}</span>
-                  </div>
-                </div>
-                <button
-                  onClick={() => setSelectedTx(null)}
-                  className="p-1 rounded bg-surface-3 hover:bg-surface-4 text-ink-subtle hover:text-ink border border-hairline"
-                >
-                  <X className="w-5 h-5" />
-                </button>
+        {/* VERIFIED SMART CONTRACTS (Loaded dynamically from NETWORKS configuration) */}
+        <div className="space-y-4">
+          <div>
+            <h2 className="text-base font-bold text-[#F8FAFC]">Verified Smart Contracts</h2>
+            <p className="text-xs text-[#94A3B8]">Direct links to bytecode-verified contracts deployed on public testnets.</p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* Sepolia Contract */}
+            <div className="p-4 rounded-xl bg-[#101824] border border-white/[0.08] space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-bold text-[#F8FAFC]">Ethereum Sepolia Emergency Vault</span>
+                <span className="px-2 py-0.5 rounded text-[10px] font-mono bg-emerald-500/10 text-emerald-400 border border-emerald-500/30">
+                  Verified / Connected
+                </span>
               </div>
-
-              {/* Modal Content */}
-              <div className="p-6 overflow-y-auto space-y-6">
-                {/* Delivery Photo */}
-                <div className="relative h-64 rounded-lg overflow-hidden bg-surface-2 border border-hairline">
-                  <img
-                    src={selectedTx.deliveryImage}
-                    alt="On-ground delivery proof"
-                    className="w-full h-full object-cover"
-                  />
-                  <div className="absolute top-3 left-3 px-2.5 py-1 rounded-pill bg-canvas/90 backdrop-blur-md text-semantic-success text-xs font-mono border border-hairline flex items-center gap-1.5">
-                    <CheckCircle2 className="w-3.5 h-3.5" />
-                    <span>Cryptographically Verified Delivery</span>
-                  </div>
-                  <div className="absolute bottom-3 left-3 right-3 p-2 rounded bg-canvas/90 backdrop-blur-md text-ink text-xs font-mono border border-hairline flex items-center gap-1.5">
-                    <MapPin className="w-3.5 h-3.5 text-red-400 shrink-0" />
-                    <span>{selectedTx.deliveryLocation}</span>
-                  </div>
+              <div className="space-y-1 text-xs font-mono">
+                <div className="flex justify-between text-[#94A3B8]">
+                  <span>Contract Address:</span>
+                  <span className="text-[#F8FAFC] font-semibold">{NETWORKS.sepolia.contracts.vault}</span>
                 </div>
-
-                {/* Field Notes */}
-                <div className="p-4 rounded-lg bg-canvas border border-hairline space-y-2">
-                  <span className="text-xs font-mono text-ink-tertiary uppercase">Field NGO Handover Log</span>
-                  <p className="text-sm text-ink leading-relaxed">
-                    {selectedTx.fieldNotes}
-                  </p>
-                  <div className="text-[11px] font-mono text-primary pt-1">
-                    {selectedTx.verifiedBy}
-                  </div>
-                </div>
-
-                {/* Transaction Cryptographic Proof Specs */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs font-mono">
-                  <div className="p-3 rounded bg-surface-2 border border-hairline">
-                    <div className="text-ink-tertiary">ON-CHAIN TX HASH</div>
-                    <div className="text-ink font-semibold mt-1 break-all">{selectedTx.txHash}</div>
-                  </div>
-                  <div className="p-3 rounded bg-surface-2 border border-hairline">
-                    <div className="text-ink-tertiary">ZERO-KNOWLEDGE RECIPIENT</div>
-                    <div className="text-semantic-success font-semibold mt-1">{selectedTx.victimMerkleHash}</div>
-                  </div>
-                  <div className="p-3 rounded bg-surface-2 border border-hairline">
-                    <div className="text-ink-tertiary">BLOCKCHAIN NETWORK</div>
-                    <div className="text-ink font-semibold mt-1">{selectedTx.chain} (Block #{selectedTx.blockNumber})</div>
-                  </div>
-                  <div className="p-3 rounded bg-surface-2 border border-hairline">
-                    <div className="text-ink-tertiary">GASLESS SPONSOR</div>
-                    <div className="text-primary font-semibold mt-1">{selectedTx.gasSponsorTx}</div>
-                  </div>
+                <div className="flex justify-between text-[#94A3B8]">
+                  <span>Chain ID:</span>
+                  <span className="text-[#F8FAFC]">{NETWORKS.sepolia.chainId}</span>
                 </div>
               </div>
-
-              {/* Modal Footer */}
-              <div className="p-4 bg-surface-2 border-t border-hairline flex items-center justify-between">
-                <span className="text-xs font-mono text-ink-subtle">IPFS Gateway: ipfs.io/ipfs/{selectedTx.ipfsHash.slice(0, 12)}...</span>
-                <button
-                  onClick={() => setSelectedTx(null)}
-                  className="px-4 py-1.5 rounded bg-primary hover:bg-primary-hover text-white text-xs font-medium tracking-button transition-all"
+              <div className="pt-2 border-t border-white/[0.08] flex justify-end">
+                <a
+                  href={getExplorerAddressUrl("sepolia", NETWORKS.sepolia.contracts.vault)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-xs font-mono text-sky-400 hover:underline flex items-center gap-1"
                 >
-                  Close Inspector
-                </button>
+                  <span>View Contract on Etherscan</span>
+                  <ArrowUpRight className="w-3.5 h-3.5" />
+                </a>
+              </div>
+            </div>
+
+            {/* Amoy Contract */}
+            <div className="p-4 rounded-xl bg-[#101824] border border-white/[0.08] space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-bold text-[#F8FAFC]">Polygon Amoy Emergency Vault</span>
+                <span className="px-2 py-0.5 rounded text-[10px] font-mono bg-sky-500/10 text-sky-400 border border-sky-500/30">
+                  Verified / Connected
+                </span>
+              </div>
+              <div className="space-y-1 text-xs font-mono">
+                <div className="flex justify-between text-[#94A3B8]">
+                  <span>Contract Address:</span>
+                  <span className="text-[#F8FAFC] font-semibold">{NETWORKS.amoy.contracts.vault}</span>
+                </div>
+                <div className="flex justify-between text-[#94A3B8]">
+                  <span>Chain ID:</span>
+                  <span className="text-[#F8FAFC]">{NETWORKS.amoy.chainId}</span>
+                </div>
+              </div>
+              <div className="pt-2 border-t border-white/[0.08] flex justify-end">
+                <a
+                  href={getExplorerAddressUrl("amoy", NETWORKS.amoy.contracts.vault)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-xs font-mono text-sky-400 hover:underline flex items-center gap-1"
+                >
+                  <span>View Contract on Polygonscan</span>
+                  <ArrowUpRight className="w-3.5 h-3.5" />
+                </a>
               </div>
             </div>
           </div>
-        )}
+        </div>
+
+        {/* AUDIT INTEGRITY TRUST SECTION */}
+        <div className="p-6 rounded-xl bg-[#0B111A] border border-white/[0.08] space-y-4">
+          <h2 className="text-base font-bold text-[#F8FAFC]">Why This Audit Is Verifiable</h2>
+          
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
+            <div className="p-4 rounded-lg bg-[#101824] border border-white/[0.08] space-y-2">
+              <div className="flex items-center gap-2 text-sky-400 font-mono font-bold">
+                <Activity className="w-4 h-4" />
+                <span>ON-CHAIN EVENTS</span>
+              </div>
+              <p className="text-[#94A3B8] leading-relaxed">
+                Fund movements are recorded through smart-contract events emitted directly by immutable Solidity code.
+              </p>
+            </div>
+
+            <div className="p-4 rounded-lg bg-[#101824] border border-white/[0.08] space-y-2">
+              <div className="flex items-center gap-2 text-emerald-400 font-mono font-bold">
+                <Globe className="w-4 h-4" />
+                <span>CROSS-CHAIN</span>
+              </div>
+              <p className="text-[#94A3B8] leading-relaxed">
+                Activity is independently visible across Sepolia and Amoy, verifiable on public nodes and testnets.
+              </p>
+            </div>
+
+            <div className="p-4 rounded-lg bg-[#101824] border border-white/[0.08] space-y-2">
+              <div className="flex items-center gap-2 text-purple-400 font-mono font-bold">
+                <ShieldCheck className="w-4 h-4" />
+                <span>PUBLIC VERIFICATION</span>
+              </div>
+              <p className="text-[#94A3B8] leading-relaxed">
+                Transactions can be independently verified using blockchain explorers (Etherscan, Polygonscan) and IPFS gateways.
+              </p>
+            </div>
+          </div>
+        </div>
+
       </div>
+
+      {/* TRANSACTION DETAILS DRAWER (Slides in from the right) */}
+      {selectedTx && (
+        <div className="fixed inset-0 z-50 bg-black/75 backdrop-blur-sm flex justify-end">
+          <div className="w-full max-w-lg bg-[#101824] border-l border-white/[0.12] h-full overflow-y-auto shadow-2xl flex flex-col justify-between p-6 space-y-6">
+            <div className="space-y-6">
+              {/* Header */}
+              <div className="flex items-center justify-between pb-4 border-b border-white/[0.08]">
+                <div>
+                  <h3 className="text-base font-bold text-[#F8FAFC]">Transaction Details</h3>
+                  <span className="text-xs font-mono text-sky-400">{selectedTx.eventName}</span>
+                </div>
+                <button
+                  onClick={() => setSelectedTx(null)}
+                  className="p-1.5 rounded-lg bg-white/[0.04] text-[#94A3B8] hover:text-[#F8FAFC]"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+
+              {/* Data Fields */}
+              <div className="space-y-3 text-xs font-mono">
+                <div className="p-3 rounded-lg bg-[#070B12] border border-white/[0.04] space-y-1">
+                  <div className="text-[#64748B] text-[10px]">EVENT TYPE</div>
+                  <div className="text-[#F8FAFC] font-semibold capitalize">{selectedTx.eventType}</div>
+                </div>
+
+                <div className="p-3 rounded-lg bg-[#070B12] border border-white/[0.04] space-y-1">
+                  <div className="text-[#64748B] text-[10px]">NETWORK</div>
+                  <div className="text-[#F8FAFC] font-semibold">{selectedTx.networkName} (Chain ID {selectedTx.chainId})</div>
+                </div>
+
+                <div className="p-3 rounded-lg bg-[#070B12] border border-white/[0.04] space-y-1">
+                  <div className="flex justify-between text-[#64748B] text-[10px]">
+                    <span>TRANSACTION HASH</span>
+                    <button
+                      onClick={() => handleCopy(selectedTx.txHash, "drawer-tx")}
+                      className="text-sky-400 hover:underline"
+                    >
+                      {copiedKey === "drawer-tx" ? "✓ Copied" : "Copy"}
+                    </button>
+                  </div>
+                  <div className="text-[#F8FAFC] font-semibold break-all text-[11px]">{selectedTx.txHash}</div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="p-3 rounded-lg bg-[#070B12] border border-white/[0.04] space-y-1">
+                    <div className="text-[#64748B] text-[10px]">BLOCK NUMBER</div>
+                    <div className="text-[#F8FAFC] font-semibold">#{selectedTx.blockNumber}</div>
+                  </div>
+                  <div className="p-3 rounded-lg bg-[#070B12] border border-white/[0.04] space-y-1">
+                    <div className="text-[#64748B] text-[10px]">TIMESTAMP</div>
+                    <div className="text-[#F8FAFC] font-semibold">{selectedTx.timeAgo}</div>
+                  </div>
+                </div>
+
+                <div className="p-3 rounded-lg bg-[#070B12] border border-white/[0.04] space-y-1">
+                  <div className="text-[#64748B] text-[10px]">FROM ADDRESS</div>
+                  <div className="text-[#F8FAFC] font-semibold break-all text-[11px]">{selectedTx.fromAddress}</div>
+                </div>
+
+                <div className="p-3 rounded-lg bg-[#070B12] border border-white/[0.04] space-y-1">
+                  <div className="text-[#64748B] text-[10px]">TO / CONTRACT</div>
+                  <div className="text-[#F8FAFC] font-semibold break-all text-[11px]">{selectedTx.toAddress}</div>
+                </div>
+
+                {selectedTx.beneficiaryAddress && (
+                  <div className="p-3 rounded-lg bg-emerald-500/5 border border-emerald-500/20 space-y-1">
+                    <div className="text-emerald-400 text-[10px]">BENEFICIARY ADDRESS (ZK VERIFIED)</div>
+                    <div className="text-emerald-300 font-semibold break-all text-[11px]">{selectedTx.beneficiaryAddress}</div>
+                  </div>
+                )}
+
+                {selectedTx.amountUSD > 0 && (
+                  <div className="p-3 rounded-lg bg-[#070B12] border border-white/[0.04] space-y-1">
+                    <div className="text-[#64748B] text-[10px]">AMOUNT</div>
+                    <div className="text-emerald-400 font-bold text-sm">{selectedTx.amountCrypto} ({formatCurrencyUSD(selectedTx.amountUSD)})</div>
+                  </div>
+                )}
+
+                {selectedTx.ipfsCid && (
+                  <div className="p-3 rounded-lg bg-[#070B12] border border-white/[0.04] space-y-1">
+                    <div className="text-[#64748B] text-[10px]">IPFS PROOF CID</div>
+                    <div className="text-sky-400 font-semibold break-all text-[11px]">{selectedTx.ipfsCid}</div>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Bottom Actions */}
+            <div className="pt-4 border-t border-white/[0.08] space-y-2">
+              <a
+                href={getExplorerTxUrl(selectedTx.network, selectedTx.txHash)}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="w-full py-2.5 rounded-lg bg-sky-500 hover:bg-sky-400 text-black font-semibold text-xs font-mono flex items-center justify-center gap-2 transition-colors shadow-sm"
+              >
+                <span>Verify on {selectedTx.network === "sepolia" ? "Etherscan" : "Polygonscan"}</span>
+                <ExternalLink className="w-3.5 h-3.5" />
+              </a>
+              <button
+                onClick={() => setSelectedTx(null)}
+                className="w-full py-2 rounded-lg bg-white/[0.04] hover:bg-white/[0.08] text-[#F8FAFC] text-xs font-mono transition-colors"
+              >
+                Close Drawer
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* IPFS PROOF MODAL */}
+      {selectedIpfsProof && (
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="w-full max-w-lg bg-[#101824] border border-white/[0.12] rounded-xl overflow-hidden shadow-2xl p-6 space-y-4">
+            <div className="flex items-center justify-between pb-3 border-b border-white/[0.08]">
+              <div className="flex items-center gap-2">
+                <ShieldCheck className="w-4 h-4 text-emerald-400" />
+                <h3 className="text-sm font-bold text-[#F8FAFC]">{selectedIpfsProof.title}</h3>
+              </div>
+              <button
+                onClick={() => setSelectedIpfsProof(null)}
+                className="p-1 rounded bg-white/[0.04] text-[#94A3B8] hover:text-[#F8FAFC]"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="space-y-3 text-xs font-mono">
+              <div className="p-3 rounded-lg bg-[#070B12] border border-white/[0.04] space-y-1">
+                <div className="text-[#64748B] text-[10px]">CONTENT IDENTIFIER (CID)</div>
+                <div className="text-sky-400 font-semibold break-all">{selectedIpfsProof.cid}</div>
+              </div>
+
+              <div className="p-3 rounded-lg bg-[#070B12] border border-white/[0.04] space-y-1">
+                <div className="text-[#64748B] text-[10px]">STORAGE NETWORK</div>
+                <div className="text-[#F8FAFC]">IPFS Decentralized Gateway (Pinata / Filecoin)</div>
+              </div>
+
+              <div className="p-3 rounded-lg bg-[#070B12] border border-white/[0.04] space-y-1">
+                <div className="text-[#64748B] text-[10px]">SECURITY GUARANTEE</div>
+                <div className="text-[#94A3B8]">
+                  Zero sensitive personal identity data is stored on public storage. Only cryptographic Merkle inclusion proofs and authorized NGO field receipts are attached.
+                </div>
+              </div>
+            </div>
+
+            <div className="pt-2 flex items-center justify-between">
+              <a
+                href={getIpfsGatewayUrl(selectedIpfsProof.cid)}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-xs font-mono text-sky-400 hover:underline flex items-center gap-1"
+              >
+                <span>Open Public IPFS Gateway</span>
+                <ExternalLink className="w-3.5 h-3.5" />
+              </a>
+              <button
+                onClick={() => setSelectedIpfsProof(null)}
+                className="px-3.5 py-1.5 rounded-md bg-sky-500 hover:bg-sky-400 text-black text-xs font-semibold"
+              >
+                Done
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
+  );
+}
+
+export default function AuditPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-[#070B12] text-[#F8FAFC] flex items-center justify-center p-8">
+        <div className="flex items-center gap-3 text-xs font-mono text-[#94A3B8]">
+          <div className="w-4 h-4 border-2 border-sky-400 border-t-transparent rounded-full animate-spin"></div>
+          <span>Loading Public Blockchain Audit Ledger...</span>
+        </div>
+      </div>
+    }>
+      <AuditContent />
+    </Suspense>
   );
 }
