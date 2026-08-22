@@ -26,6 +26,13 @@ interface CrisisDetail {
   categoryName: string;
   location: string;
   gps: string;
+  status: string;
+  started: string;
+  severity: string;
+  peopleAffected: string;
+  immediateAidRequired: string;
+  affectedArea: string;
+  lastUpdated: string;
   raisedUSD: number;
   targetUSD: number;
   severityIndex: number;
@@ -60,6 +67,13 @@ const crisisDatabase: Record<string, CrisisDetail> = {
     categoryName: "Earthquake Relief",
     location: "Kahramanmaraş & Gaziantep, Turkey",
     gps: "37.5854° N, 36.9372° E",
+    status: "Active — Critical",
+    started: "14:32 UTC",
+    severity: "9.4/10",
+    peopleAffected: "2.4M",
+    immediateAidRequired: "842K",
+    affectedArea: "18,420 km²",
+    lastUpdated: "3 sec ago",
     raisedUSD: 684200,
     targetUSD: 1000000,
     severityIndex: 9.4,
@@ -92,6 +106,13 @@ const crisisDatabase: Record<string, CrisisDetail> = {
     categoryName: "Monsoon Flood",
     location: "Wayanad, Kerala, India",
     gps: "11.6854° N, 76.1320° E",
+    status: "Active — High Alert",
+    started: "06:15 UTC",
+    severity: "8.1/10",
+    peopleAffected: "1.1M",
+    immediateAidRequired: "320K",
+    affectedArea: "4,200 km²",
+    lastUpdated: "12 sec ago",
     raisedUSD: 342100,
     targetUSD: 500000,
     severityIndex: 8.1,
@@ -124,6 +145,13 @@ const crisisDatabase: Record<string, CrisisDetail> = {
     categoryName: "Severe Drought",
     location: "Somalia & Eastern Ethiopia",
     gps: "5.1521° N, 46.1996° E",
+    status: "Active — Elevated",
+    started: "03:40 UTC",
+    severity: "7.6/10",
+    peopleAffected: "4.8M",
+    immediateAidRequired: "1.2M",
+    affectedArea: "65,000 km²",
+    lastUpdated: "45 sec ago",
     raisedUSD: 214200,
     targetUSD: 400000,
     severityIndex: 7.6,
@@ -220,9 +248,84 @@ export default function CrisisPage({ params }: { params: { id: string } }) {
               <h1 className="text-2xl md:text-3xl font-semibold tracking-tight text-ink mb-2">
                 {crisis.title}
               </h1>
-              <p className="text-xs text-ink-subtle leading-relaxed mb-6">
+              <p className="text-xs text-ink-subtle leading-relaxed mb-5">
                 {crisis.description}
               </p>
+
+              {/* Active Crisis Vital Status HUD (7 Key Operational Metrics) */}
+              <div className="p-4 rounded-lg bg-surface-2/80 border border-hairline mb-6">
+                <div className="flex flex-wrap items-center justify-between gap-2 pb-2.5 mb-3 border-b border-hairline">
+                  <div className="flex items-center gap-2 text-xs font-mono font-semibold uppercase text-ink">
+                    <span className="w-2 h-2 rounded-full bg-semantic-success animate-pulse" />
+                    <span>Active Crisis Live Telemetry Feed</span>
+                  </div>
+                  <span className="text-[11px] font-mono text-ink-subtle flex items-center gap-1">
+                    🔄 Last Updated: <strong className="text-ink font-semibold">{crisis.lastUpdated}</strong>
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2.5 font-mono text-xs">
+                  {/* 1. Status */}
+                  <div className="p-2.5 rounded bg-canvas border border-hairline">
+                    <div className="text-[10px] text-ink-tertiary uppercase flex items-center gap-1">
+                      <span>🟢 Status</span>
+                    </div>
+                    <div className="text-emerald-400 font-semibold text-[11px] mt-1 truncate">
+                      {crisis.status}
+                    </div>
+                  </div>
+
+                  {/* 2. Started */}
+                  <div className="p-2.5 rounded bg-canvas border border-hairline">
+                    <div className="text-[10px] text-ink-tertiary uppercase flex items-center gap-1">
+                      <span>🕐 Started</span>
+                    </div>
+                    <div className="text-ink font-semibold text-[11px] mt-1">
+                      {crisis.started}
+                    </div>
+                  </div>
+
+                  {/* 3. Severity */}
+                  <div className="p-2.5 rounded bg-canvas border border-hairline">
+                    <div className="text-[10px] text-ink-tertiary uppercase flex items-center gap-1">
+                      <span>📈 Severity</span>
+                    </div>
+                    <div className="text-red-400 font-semibold text-[11px] mt-1">
+                      {crisis.severity}
+                    </div>
+                  </div>
+
+                  {/* 4. People Affected */}
+                  <div className="p-2.5 rounded bg-canvas border border-hairline">
+                    <div className="text-[10px] text-ink-tertiary uppercase flex items-center gap-1">
+                      <span>👥 People Affected</span>
+                    </div>
+                    <div className="text-ink font-semibold text-[11px] mt-1">
+                      {crisis.peopleAffected}
+                    </div>
+                  </div>
+
+                  {/* 5. Immediate Aid Required */}
+                  <div className="p-2.5 rounded bg-canvas border border-hairline">
+                    <div className="text-[10px] text-ink-tertiary uppercase flex items-center gap-1">
+                      <span>🚨 Immediate Aid</span>
+                    </div>
+                    <div className="text-primary font-semibold text-[11px] mt-1">
+                      {crisis.immediateAidRequired}
+                    </div>
+                  </div>
+
+                  {/* 6. Affected Area */}
+                  <div className="p-2.5 rounded bg-canvas border border-hairline">
+                    <div className="text-[10px] text-ink-tertiary uppercase flex items-center gap-1">
+                      <span>🗺️ Affected Area</span>
+                    </div>
+                    <div className="text-ink font-semibold text-[11px] mt-1 truncate">
+                      {crisis.affectedArea}
+                    </div>
+                  </div>
+                </div>
+              </div>
 
               {/* Progress Bar */}
               <div className="space-y-1.5 mb-6 pt-4 border-t border-hairline">

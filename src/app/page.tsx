@@ -28,6 +28,13 @@ export default function CommandCenterHome() {
       category: "earthquake",
       categoryName: "Earthquake",
       location: "Kahramanmaraş & Gaziantep, Turkey",
+      status: "Active — Critical",
+      started: "14:32 UTC",
+      severity: "9.4/10",
+      peopleAffected: "2.4M",
+      immediateAidRequired: "842K",
+      affectedArea: "18,420 km²",
+      lastUpdated: "3 sec ago",
       raisedUSD: 684200,
       targetUSD: 1000000,
       severityIndex: 9.4,
@@ -47,6 +54,13 @@ export default function CommandCenterHome() {
       category: "flood",
       categoryName: "Flood",
       location: "Wayanad, Kerala, India",
+      status: "Active — High Alert",
+      started: "06:15 UTC",
+      severity: "8.1/10",
+      peopleAffected: "1.1M",
+      immediateAidRequired: "320K",
+      affectedArea: "4,200 km²",
+      lastUpdated: "12 sec ago",
       raisedUSD: 342100,
       targetUSD: 500000,
       severityIndex: 8.1,
@@ -66,6 +80,13 @@ export default function CommandCenterHome() {
       category: "drought",
       categoryName: "Drought",
       location: "Somalia & Eastern Ethiopia",
+      status: "Active — Elevated",
+      started: "03:40 UTC",
+      severity: "7.6/10",
+      peopleAffected: "4.8M",
+      immediateAidRequired: "1.2M",
+      affectedArea: "65,000 km²",
+      lastUpdated: "45 sec ago",
       raisedUSD: 214200,
       targetUSD: 400000,
       severityIndex: 7.6,
@@ -233,6 +254,57 @@ export default function CommandCenterHome() {
           </div>
         </div>
 
+        {/* ACTIVE CRISIS LIVE TELEMETRY BANNER (7 KEY METRICS) */}
+        <div className="mb-8 p-5 rounded-lg bg-surface-1 border border-hairline/80 shadow-sm relative overflow-hidden">
+          <div className="absolute top-0 left-0 w-1 h-full bg-red-500" />
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 pb-3 mb-3.5 border-b border-hairline">
+            <div className="flex items-center gap-2">
+              <span className="w-2.5 h-2.5 rounded-full bg-semantic-success animate-pulse" />
+              <span className="text-xs font-mono font-bold uppercase tracking-wider text-ink">
+                Priority Active Crisis Live Telemetry Stream
+              </span>
+              <span className="text-[10px] font-mono px-2 py-0.5 rounded-pill bg-red-950/40 text-red-400 border border-red-900/50">
+                CRITICAL DISPATCH
+              </span>
+            </div>
+            <div className="text-xs font-mono text-ink-subtle flex items-center gap-1.5">
+              <span>🔄 Last Updated:</span>
+              <strong className="text-ink font-semibold">3 sec ago</strong>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-7 gap-2.5 font-mono text-xs">
+            <div className="p-2.5 rounded bg-canvas border border-hairline">
+              <div className="text-[10px] text-ink-tertiary uppercase">🟢 Status</div>
+              <div className="text-emerald-400 font-semibold text-[11px] mt-0.5 truncate">Active — Critical</div>
+            </div>
+            <div className="p-2.5 rounded bg-canvas border border-hairline">
+              <div className="text-[10px] text-ink-tertiary uppercase">🕐 Started</div>
+              <div className="text-ink font-semibold text-[11px] mt-0.5">14:32 UTC</div>
+            </div>
+            <div className="p-2.5 rounded bg-canvas border border-hairline">
+              <div className="text-[10px] text-ink-tertiary uppercase">📈 Severity</div>
+              <div className="text-red-400 font-semibold text-[11px] mt-0.5">9.4/10</div>
+            </div>
+            <div className="p-2.5 rounded bg-canvas border border-hairline">
+              <div className="text-[10px] text-ink-tertiary uppercase">👥 People Affected</div>
+              <div className="text-ink font-semibold text-[11px] mt-0.5">2.4M</div>
+            </div>
+            <div className="p-2.5 rounded bg-canvas border border-hairline">
+              <div className="text-[10px] text-ink-tertiary uppercase">🚨 Immediate Aid</div>
+              <div className="text-primary font-semibold text-[11px] mt-0.5">842K</div>
+            </div>
+            <div className="p-2.5 rounded bg-canvas border border-hairline">
+              <div className="text-[10px] text-ink-tertiary uppercase">🗺️ Affected Area</div>
+              <div className="text-ink font-semibold text-[11px] mt-0.5 truncate">18,420 km²</div>
+            </div>
+            <div className="p-2.5 rounded bg-canvas border border-hairline">
+              <div className="text-[10px] text-ink-tertiary uppercase">🔄 Last Updated</div>
+              <div className="text-ink font-semibold text-[11px] mt-0.5">3 sec ago</div>
+            </div>
+          </div>
+        </div>
+
         {/* Crisis Cards Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
           {filteredCrises.map((crisis) => {
@@ -246,7 +318,7 @@ export default function CommandCenterHome() {
                   {/* Top Status & Severity Pill */}
                   <div className="flex items-center justify-between gap-2 mb-3">
                     <span className={`px-2 py-0.5 rounded-pill text-[10px] font-mono uppercase border ${crisis.statusColor}`}>
-                      {crisis.severityStatus} • {crisis.severityIndex}/10
+                      {crisis.severityStatus} • {crisis.severity}
                     </span>
                     <span className="text-[11px] font-mono text-ink-subtle">
                       {crisis.categoryName}
@@ -257,9 +329,37 @@ export default function CommandCenterHome() {
                   <h3 className="text-base font-semibold tracking-tight text-ink mb-1">
                     {crisis.title}
                   </h3>
-                  <div className="text-xs text-ink-subtle flex items-center gap-1 mb-4">
+                  <div className="text-xs text-ink-subtle flex items-center gap-1 mb-3">
                     <Globe className="w-3.5 h-3.5 text-ink-tertiary" />
                     <span>{crisis.location}</span>
+                  </div>
+
+                  {/* Incident Quick Metrics Grid (7 Points) */}
+                  <div className="grid grid-cols-2 gap-1.5 text-[10px] font-mono mb-3.5 p-2 rounded bg-canvas border border-hairline">
+                    <div className="flex items-center justify-between">
+                      <span className="text-ink-tertiary">🟢 Status:</span>
+                      <span className="text-ink font-medium">{crisis.status}</span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-ink-tertiary">🕐 Started:</span>
+                      <span className="text-ink font-medium">{crisis.started}</span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-ink-tertiary">👥 Affected:</span>
+                      <span className="text-ink font-medium">{crisis.peopleAffected}</span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-ink-tertiary">🚨 Aid Req:</span>
+                      <span className="text-primary font-medium">{crisis.immediateAidRequired}</span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-ink-tertiary">🗺️ Area:</span>
+                      <span className="text-ink font-medium">{crisis.affectedArea}</span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-ink-tertiary">🔄 Updated:</span>
+                      <span className="text-ink-subtle">{crisis.lastUpdated}</span>
+                    </div>
                   </div>
 
                   {/* Telemetry strip */}
