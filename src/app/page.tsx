@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { SwapModal } from "@/components/SwapModal";
 import { 
@@ -37,9 +37,134 @@ import {
   Check
 } from "lucide-react";
 
+function resolveRegionalNGO(location: string): { name: string; logoSrc: string } {
+  const loc = location.toLowerCase();
+  if (loc.includes("japan") || loc.includes("tateyama") || loc.includes("honshu") || loc.includes("tokyo")) {
+    return { name: "Japanese Red Cross Society", logoSrc: "/logos/jrc-japan.svg" };
+  }
+  if (loc.includes("indonesia") || loc.includes("ruteng") || loc.includes("fakfak") || loc.includes("flores") || loc.includes("banda") || loc.includes("sumatra") || loc.includes("java") || loc.includes("bali")) {
+    return { name: "Indonesian Red Cross (PMI)", logoSrc: "/logos/pmi-indonesia.svg" };
+  }
+  if (loc.includes("turkey") || loc.includes("türkiye") || loc.includes("kahramanmaraş") || loc.includes("gaziantep")) {
+    return { name: "Turkish Red Crescent (Türk Kızılay)", logoSrc: "/logos/red-crescent.svg" };
+  }
+  if (loc.includes("philippin") || loc.includes("mindanao") || loc.includes("luzon")) {
+    return { name: "Philippine Red Cross", logoSrc: "/logos/philippine-red-cross.svg" };
+  }
+  if (loc.includes("california") || loc.includes("alaska") || loc.includes("hawaii") || loc.includes("texas") || loc.includes("united states") || loc.includes("usa")) {
+    return { name: "American Red Cross Disaster Relief", logoSrc: "/logos/american-red-cross.svg" };
+  }
+  if (loc.includes("mexico") || loc.includes("oaxaca") || loc.includes("chiapas")) {
+    return { name: "Mexican Red Cross (Cruz Roja)", logoSrc: "/logos/red-cross.svg" };
+  }
+  return { name: "UN OCHA Emergency Relief & Red Cross", logoSrc: "/logos/un-ocha.svg" };
+}
+
+function timeDifference(current: number, previous: number) {
+  const msPerMinute = 60 * 1000;
+  const msPerHour = msPerMinute * 60;
+  const msPerDay = msPerHour * 24;
+  const elapsed = Math.max(0, current - previous);
+
+  if (elapsed < msPerMinute) {
+    return Math.round(elapsed / 1000) + "s ago";
+  } else if (elapsed < msPerHour) {
+    return Math.round(elapsed / msPerMinute) + "m ago";
+  } else if (elapsed < msPerDay) {
+    return Math.round(elapsed / msPerHour) + "h ago";
+  } else {
+    return Math.round(elapsed / msPerDay) + "d ago";
+  }
+}
+
+interface LiveDisasterVault {
+  id: string;
+  title: string;
+  location: string;
+  source: string;
+  raised: string;
+  status: string;
+  statusColor: string;
+  ngo: string;
+  time: string;
+}
+
 export default function CommandCenterHome() {
   const [activeTab, setActiveTab] = useState<"all" | "earthquake" | "flood" | "drought">("all");
   const [swapModalOpen, setSwapModalOpen] = useState(false);
+  const [liveDisasterVaults, setLiveDisasterVaults] = useState<LiveDisasterVault[]>([
+    {
+      id: "mexico-quake",
+      title: "M 4.5 Puerto Madero Quake",
+      location: "Chiapas, Mexico",
+      source: "USGS Station MEX-08",
+      raised: "125,000",
+      status: "CRITICAL",
+      statusColor: "bg-rose-50 text-rose-700 border-rose-200",
+      ngo: "Mexican Red Cross (Cruz Roja)",
+      time: "Live USGS",
+    },
+    {
+      id: "japan-quake",
+      title: "M 5.2 Honshu Offshore Tectonic",
+      location: "Honshu, Japan",
+      source: "JMA Seismograph Station",
+      raised: "340,000",
+      status: "ACTIVE",
+      statusColor: "bg-blue-50 text-blue-700 border-blue-200",
+      ngo: "Japanese Red Cross Society",
+      time: "Live JMA",
+    },
+    {
+      id: "california-quake",
+      title: "M 4.1 Southern California Tremor",
+      location: "Imperial, California",
+      source: "USGS Station CI-114",
+      raised: "210,000",
+      status: "ELEVATED",
+      statusColor: "bg-amber-50 text-amber-700 border-amber-200",
+      ngo: "American Red Cross Disaster Ops",
+      time: "Live USGS",
+    },
+  ]);
+
+  useEffect(() => {
+    async function loadLiveUSGS() {
+      try {
+        const res = await fetch("https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/4.5_week.geojson");
+        if (res.ok) {
+          const data = await res.json();
+          if (data && data.features && data.features.length > 0) {
+            const mapped: LiveDisasterVault[] = data.features.slice(0, 6).map((f: any, idx: number) => {
+              const mag = Number(f.properties?.mag || 5.0);
+              const place = f.properties?.place || "Seismic Zone";
+              const time = Number(f.properties?.time || Date.now());
+              const ngo = resolveRegionalNGO(place);
+              const cleanTitle = place.includes("of ") ? place.split("of ")[1] : place;
+
+              return {
+                id: f.id || `usgs-live-${idx}`,
+                title: `M ${mag.toFixed(1)} ${cleanTitle} Quake`,
+                location: place,
+                source: "Live USGS Telemetry",
+                raised: (mag >= 6.0 ? 350000 : 180000 + Math.round(mag * 20000)).toLocaleString(),
+                status: mag >= 6.0 ? "CRITICAL" : "ACTIVE",
+                statusColor: mag >= 6.0 ? "bg-rose-50 text-rose-700 border-rose-200" : "bg-blue-50 text-blue-700 border-blue-200",
+                ngo: ngo.name,
+                time: timeDifference(Date.now(), time),
+              };
+            });
+            if (mapped.length > 0) {
+              setLiveDisasterVaults(mapped);
+            }
+          }
+        }
+      } catch (e) {
+        console.warn("Home page live USGS fetch error:", e);
+      }
+    }
+    loadLiveUSGS();
+  }, []);
 
   const crises = [
     {
@@ -573,43 +698,9 @@ export default function CommandCenterHome() {
             </Link>
           </div>
 
-          {/* Compact 3-Card Minimal Grid */}
+          {/* Compact 3-Card Minimal Grid (Dynamic Live USGS Telemetry matching /crisis) */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {[
-              {
-                id: "mexico-quake",
-                title: "M 4.5 Puerto Madero Quake",
-                location: "Chiapas, Mexico",
-                source: "USGS Station MEX-08",
-                raised: "$125,000",
-                status: "CRITICAL",
-                statusColor: "bg-rose-50 text-rose-700 border-rose-200",
-                ngo: "Mexican Red Cross (Cruz Roja)",
-                time: "Live USGS",
-              },
-              {
-                id: "japan-quake",
-                title: "M 5.2 Honshu Offshore Tectonic",
-                location: "Honshu, Japan",
-                source: "JMA Seismograph Station",
-                raised: "$340,000",
-                status: "ACTIVE",
-                statusColor: "bg-blue-50 text-blue-700 border-blue-200",
-                ngo: "Japanese Red Cross Society",
-                time: "Live JMA",
-              },
-              {
-                id: "california-quake",
-                title: "M 4.1 Southern California Tremor",
-                location: "Imperial, California",
-                source: "USGS Station CI-114",
-                raised: "$210,000",
-                status: "ELEVATED",
-                statusColor: "bg-amber-50 text-amber-700 border-amber-200",
-                ngo: "American Red Cross Disaster Ops",
-                time: "Live USGS",
-              },
-            ].map((vault) => (
+            {liveDisasterVaults.slice(0, 3).map((vault) => (
               <div
                 key={vault.id}
                 className="p-5 rounded-2xl bg-white border border-[#E2E8F0] shadow-xs hover:border-[#CBD5E1] transition-all space-y-4 flex flex-col justify-between"
@@ -647,7 +738,7 @@ export default function CommandCenterHome() {
                   </div>
 
                   <Link
-                    href="/crisis"
+                    href={`/crisis#${vault.id}`}
                     className="px-4 py-2 rounded-xl bg-[#2563EB] hover:bg-[#1D4ED8] text-white text-xs font-semibold shadow-2xs transition-colors flex items-center gap-1"
                   >
                     <span>Donate Aid</span>

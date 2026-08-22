@@ -29,6 +29,41 @@ import { saveDonationRecord, saveBeneficiaryClaim } from "@/lib/auditState";
 import { useWallet } from "@/context/WalletContext";
 import { buildMerkleTree, generateProof, buildEIP712ClaimData } from "@/lib/merkle";
 
+// Branded Blockchain Network SVG Icons
+function EthereumIcon({ className = "w-3.5 h-3.5" }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 256 417" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M127.961 0L125.166 9.5V285.168L127.961 287.958L255.923 212.32L127.961 0Z" fill="#627EEA" />
+      <path d="M127.962 0L0 212.32L127.962 287.958V157.34V0Z" fill="#627EEA" fillOpacity="0.8" />
+      <path d="M127.961 312.187L126.386 314.106V413.447L127.961 416.892L256 236.585L127.961 312.187Z" fill="#627EEA" />
+      <path d="M127.962 416.892V312.187L0 236.585L127.962 416.892Z" fill="#627EEA" fillOpacity="0.8" />
+      <path d="M127.961 287.958L255.923 212.32L127.961 157.339V287.958Z" fill="#627EEA" fillOpacity="0.6" />
+      <path d="M0 212.32L127.962 287.958V157.339L0 212.32Z" fill="#627EEA" fillOpacity="0.4" />
+    </svg>
+  );
+}
+
+function PolygonIcon({ className = "w-3.5 h-3.5" }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 38 33" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M29 10.2L19.5 4.7L10 10.2V21.2L19.5 26.7L29 21.2V10.2Z" fill="#8247E5" />
+      <path fillRule="evenodd" clipRule="evenodd" d="M19.5 0L38 10.7V32L19.5 21.3L1 32V10.7L19.5 0ZM29 10.2L19.5 4.7L10 10.2V21.2L19.5 26.7L29 21.2V10.2Z" fill="#8247E5" />
+    </svg>
+  );
+}
+
+function getApprovedAidAmount(post: { id: string; rawMagnitude?: number; depth?: string }): string {
+  const mag = post.rawMagnitude || 5.0;
+  const base = Math.round(mag * 38);
+  const idHash = (post.id || "").split("").reduce((acc, char) => acc + char.charCodeAt(0), 0);
+  const variation = (idHash % 11) * 20; // Varied step offsets: 0, 20, 40, 60, 80, 100, 120, 140, 160, 180, 200
+  const depthNum = parseFloat(post.depth || "10") || 10;
+  const depthBonus = depthNum < 20 ? 35 : depthNum < 50 ? 20 : 5;
+  const total = Math.min(650, Math.max(120, base + variation + depthBonus));
+  // Round to friendly amounts (multiples of $10 or $25)
+  return (Math.round(total / 5) * 5).toString();
+}
+
 interface RealCrisisPost {
   id: string;
   source: "USGS" | "EMSC" | "NASA";
@@ -249,7 +284,7 @@ export default function CrisisFeedPage() {
     const recipient = connectedAddress || "0x9318a4B219cf629E3FaB0192e21973Ea6164f9d3";
     const tree = buildMerkleTree([recipient]);
     const proof = generateProof(tree, recipient);
-    const claimAmount = post.rawMagnitude >= 6.0 ? "150" : "125";
+    const claimAmount = getApprovedAidAmount(post);
     const rawAmt = (parseFloat(claimAmount) * 1e6).toString();
     const deadline = Math.floor(Date.now() / 1000) + 3600;
     const eip712 = buildEIP712ClaimData(1, rawAmt, recipient, 0, deadline);
@@ -527,7 +562,7 @@ export default function CrisisFeedPage() {
             const isClaiming = inlineClaimId === post.id;
             const isDonated = donationSuccessId === post.id;
             const isClaimed = claimSuccessId === post.id;
-            const claimAmount = post.rawMagnitude >= 6.0 ? "150" : "125";
+            const claimAmount = getApprovedAidAmount(post);
 
             return (
               <article
@@ -680,52 +715,90 @@ export default function CrisisFeedPage() {
                           )}
                         </div>
                       ) : (
-                        <div className="flex items-center gap-2">
-                          <div className="relative flex-1">
-                            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-medium text-[#94A3B8]">
-                              $
-                            </span>
-                            <input
-                              type="number"
-                              min="1"
-                              step="any"
-                              value={donateAmount}
-                              onChange={(e) => setDonateAmount(e.target.value)}
-                              placeholder="Amount in USD"
-                              className="w-full pl-7 pr-3 py-2 rounded-xl bg-[#F8FAFC] border border-[#E2E8F0] text-xs font-medium text-[#0F172A] focus:outline-none focus:bg-white focus:border-[#2563EB] transition-colors font-sans [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                            />
-                          </div>
+                        <div className="space-y-2.5">
+                          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+                            {/* USD Input */}
+                            <div className="relative flex-1">
+                              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-semibold text-[#94A3B8]">
+                                $
+                              </span>
+                              <input
+                                type="number"
+                                min="1"
+                                step="any"
+                                value={donateAmount}
+                                onChange={(e) => setDonateAmount(e.target.value)}
+                                placeholder="Amount in USD"
+                                className="w-full pl-7 pr-3 py-2 rounded-xl bg-[#F8FAFC] border border-[#E2E8F0] text-xs font-semibold text-[#0F172A] focus:outline-none focus:bg-white focus:border-[#2563EB] transition-colors font-sans [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                              />
+                            </div>
 
-                          <div className="relative">
-                            <select
-                              value={donateToken}
-                              onChange={(e) => setDonateToken(e.target.value as any)}
-                              className="appearance-none pl-3 pr-8 py-2 rounded-xl bg-[#F8FAFC] border border-[#E2E8F0] text-xs font-medium text-[#0F172A] focus:outline-none focus:bg-white focus:border-[#2563EB] transition-colors cursor-pointer font-sans"
+                            {/* Network Selector Tabs with Ethereum & Polygon Icons */}
+                            <div className="flex items-center p-1 rounded-xl bg-[#F1F5F9] border border-[#E2E8F0] gap-1 shrink-0">
+                              <button
+                                type="button"
+                                onClick={() => setDonateToken("ETH")}
+                                className={`px-2.5 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer ${
+                                  donateToken === "ETH"
+                                    ? "bg-white text-[#0F172A] shadow-xs"
+                                    : "text-[#64748B] hover:text-[#0F172A]"
+                                }`}
+                              >
+                                <EthereumIcon className="w-3.5 h-3.5" />
+                                <span>Ethereum</span>
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => setDonateToken("POL")}
+                                className={`px-2.5 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer ${
+                                  donateToken === "POL"
+                                    ? "bg-white text-[#0F172A] shadow-xs"
+                                    : "text-[#64748B] hover:text-[#0F172A]"
+                                }`}
+                              >
+                                <PolygonIcon className="w-3.5 h-3.5" />
+                                <span>Polygon</span>
+                              </button>
+                            </div>
+
+                            {/* Action Button */}
+                            <button
+                              type="button"
+                              onClick={() => handleConfirmDonation(post)}
+                              disabled={isSubmittingDonation || !donateAmount || parseFloat(donateAmount) <= 0}
+                              className="px-4 py-2 rounded-xl bg-[#2563EB] hover:bg-[#1D4ED8] disabled:opacity-50 text-white text-xs font-semibold transition-all cursor-pointer shrink-0 flex items-center justify-center gap-1.5 shadow-xs"
                             >
-                              <option value="ETH">Ethereum (ETH)</option>
-                              <option value="POL">Polygon (POL)</option>
-                            </select>
-                            <ChevronDown className="w-3.5 h-3.5 text-[#64748B] absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                              {isSubmittingDonation ? (
+                                <>
+                                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                  <span>Sending...</span>
+                                </>
+                              ) : (
+                                <>
+                                  <Heart className="w-3.5 h-3.5 fill-white/20" />
+                                  <span>Donate</span>
+                                </>
+                              )}
+                            </button>
                           </div>
 
-                          <button
-                            type="button"
-                            onClick={() => handleConfirmDonation(post)}
-                            disabled={isSubmittingDonation || !donateAmount || parseFloat(donateAmount) <= 0}
-                            className="px-4 py-2 rounded-xl bg-[#2563EB] hover:bg-[#1D4ED8] disabled:opacity-50 text-white text-xs font-semibold transition-all cursor-pointer shrink-0 flex items-center gap-1.5 shadow-xs"
-                          >
-                            {isSubmittingDonation ? (
-                              <>
-                                <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                                <span>Sending...</span>
-                              </>
-                            ) : (
-                              <>
-                                <Heart className="w-3.5 h-3.5 fill-white/20" />
-                                <span>Donate</span>
-                              </>
-                            )}
-                          </button>
+                          {/* Live Conversion Rate Display with Ethereum & Polygon Icons */}
+                          {donateAmount && parseFloat(donateAmount) > 0 && (
+                            <div className="flex items-center justify-between px-3 py-1.5 rounded-lg bg-[#F8FAFC] border border-[#E2E8F0] text-[11px] text-[#475569]">
+                              <span className="text-[#64748B]">Estimated On-Chain Value:</span>
+                              <div className="flex items-center gap-1.5 font-bold text-[#0F172A]">
+                                {donateToken === "ETH" ? (
+                                  <EthereumIcon className="w-3.5 h-3.5" />
+                                ) : (
+                                  <PolygonIcon className="w-3.5 h-3.5" />
+                                )}
+                                <span>{getCryptoEstimate(donateAmount, donateToken)}</span>
+                                <span className="text-[#94A3B8] font-normal">
+                                  ({donateToken === "ETH" ? "Ethereum Network" : "Polygon Network"})
+                                </span>
+                              </div>
+                            </div>
+                          )}
                         </div>
                       )}
                     </div>
@@ -811,9 +884,15 @@ export default function CrisisFeedPage() {
                               </span>
                             </div>
 
-                            <div className="flex items-center gap-1 text-[11px] text-emerald-700 font-semibold bg-white border border-emerald-200 px-2 py-0.5 rounded-md">
-                              <Lock className="w-3 h-3 text-emerald-600" />
-                              <span>ZK Merkle Proof Valid</span>
+                            <div className="flex items-center gap-2">
+                              <div className="flex items-center gap-1 text-[11px] text-purple-700 font-semibold bg-purple-50 border border-purple-200 px-2 py-0.5 rounded-md">
+                                <PolygonIcon className="w-3 h-3" />
+                                <span>Polygon (0 Gas)</span>
+                              </div>
+                              <div className="flex items-center gap-1 text-[11px] text-emerald-700 font-semibold bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-md">
+                                <Lock className="w-3 h-3 text-emerald-600" />
+                                <span>ZK Merkle Valid</span>
+                              </div>
                             </div>
                           </div>
 

@@ -70,12 +70,19 @@ export default function BeneficiaryPage() {
               const mag = Number(f.properties?.mag || 5.0);
               const place = f.properties?.place || "Seismic Zone";
               const cleanTitle = place.includes("of ") ? place.split("of ")[1] : place;
+              const id = f.id || `live-pool-${idx}`;
+              const depthVal = f.geometry?.coordinates?.[2] || 10.0;
+              const idHash = id.split("").reduce((acc: number, char: string) => acc + char.charCodeAt(0), 0);
+              const variation = (idHash % 11) * 20;
+              const depthBonus = depthVal < 20 ? 35 : depthVal < 50 ? 20 : 5;
+              const total = Math.min(650, Math.max(120, Math.round(mag * 38) + variation + depthBonus));
+              const amount = (Math.round(total / 5) * 5).toString();
 
               return {
-                id: f.id || `live-pool-${idx}`,
+                id,
                 numericId: idx + 1,
                 title: `M ${mag.toFixed(1)} ${cleanTitle} Quake`,
-                amount: mag >= 6.0 ? "150" : "125",
+                amount,
                 currency: "USDC",
                 location: place,
               };
