@@ -1,6 +1,6 @@
 "use client";
 
-import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from "react";
+import React, { createContext, useContext, useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { ethers } from "ethers";
 import { NETWORKS } from "@/lib/contracts";
 
@@ -30,6 +30,8 @@ interface WalletContextType {
 
 const WalletContext = createContext<WalletContextType | null>(null);
 
+const DISCONNECT_STORAGE_KEY = "pulse_wallet_disconnected_manually";
+
 const CHAIN_PARAMS: Record<"sepolia" | "amoy", any> = {
   sepolia: {
     chainId: "0xaa36a7", // 11155111 in hex
@@ -39,7 +41,7 @@ const CHAIN_PARAMS: Record<"sepolia" | "amoy", any> = {
       symbol: "ETH",
       decimals: 18,
     },
-    rpcUrls: ["https://rpc.sepolia.org", "https://ethereum-sepolia-rpc.publicnode.com"],
+    rpcUrls: ["https://ethereum-sepolia-rpc.publicnode.com", "https://rpc.sepolia.org"],
     blockExplorerUrls: ["https://sepolia.etherscan.io"],
   },
   amoy: {
@@ -55,6 +57,19 @@ const CHAIN_PARAMS: Record<"sepolia" | "amoy", any> = {
   },
 };
 
+function getEthereumProvider(): any {
+  if (typeof window === "undefined") return null;
+  const anyWindow = window as any;
+  if (anyWindow.ethereum) {
+    if (anyWindow.ethereum.providers && anyWindow.ethereum.providers.length > 0) {
+      const metaMaskProvider = anyWindow.ethereum.providers.find((p: any) => p.isMetaMask);
+      if (metaMaskProvider) return metaMaskProvider;
+    }
+    return anyWindow.ethereum;
+  }
+  return null;
+}
+
 export function WalletProvider({ children }: { children: React.ReactNode }) {
   const [address, setAddress] = useState<string | null>(null);
   const [isConnecting, setIsConnecting] = useState<boolean>(false);
@@ -64,57 +79,93 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
   const [error, setError] = useState<string | null>(null);
   const [hasMetaMask, setHasMetaMask] = useState<boolean>(false);
 
+  const addressRef = useRef<string | null>(null);
+  addressRef.current = address;
+
   useEffect(() => {
-    if (typeof window !== "undefined" && (window as any).ethereum) {
+    const eth = getEthereumProvider();
+    if (eth) {
       setHasMetaMask(true);
     }
   }, []);
 
-  // Update balance directly from MetaMask's active provider
+  // Update balance directly from MetaMask + public testnet RPC fallback
   const updateBalance = useCallback(async (account: string) => {
-    if (typeof window === "undefined" || !(window as any).ethereum || !account) return;
+    if (typeof window === "undefined" || !account) return;
     try {
-      const eth = (window as any).ethereum;
-      
-      // Query eth_getBalance directly from MetaMask
-      const hexBal = await eth.request({
-        method: "eth_getBalance",
-        params: [account, "latest"],
-      });
+      const eth = getEthereumProvider();
+      let currentChainId = 11155111;
 
-      if (hexBal) {
-        const balBigInt = BigInt(hexBal);
+      if (eth) {
+        try {
+          const hexChain = await eth.request({ method: "eth_chainId" });
+          if (hexChain) {
+            currentChainId = parseInt(hexChain, 16);
+            setChainId(currentChainId);
+          }
+        } catch (e) {}
+      }
+
+      let balBigInt: bigint | null = null;
+
+      // 1. Try querying balance directly from MetaMask provider
+      if (eth) {
+        try {
+          const hexBal = await eth.request({
+            method: "eth_getBalance",
+            params: [account, "latest"],
+          });
+          if (hexBal !== undefined && hexBal !== null) {
+            balBigInt = BigInt(hexBal);
+          }
+        } catch (ethErr) {
+          console.warn("MetaMask eth_getBalance call error:", ethErr);
+        }
+      }
+
+      // 2. If MetaMask returned 0 or failed, verify with direct public JSON-RPC node
+      if (balBigInt === null || balBigInt === BigInt(0)) {
+        try {
+          const rpcUrl = currentChainId === 80002 
+            ? "https://rpc-amoy.polygon.technology" 
+            : "https://ethereum-sepolia-rpc.publicnode.com";
+          const directProvider = new ethers.JsonRpcProvider(rpcUrl);
+          const rpcBal = await directProvider.getBalance(account);
+          if (rpcBal > BigInt(0) || balBigInt === null) {
+            balBigInt = rpcBal;
+          }
+        } catch (rpcErr) {}
+      }
+
+      if (balBigInt !== null) {
         setBalanceRaw(balBigInt);
         const formatted = ethers.formatEther(balBigInt);
         const num = parseFloat(formatted);
         setBalance(num.toFixed(4));
-        return;
       }
-
-      // Fallback via BrowserProvider
-      const provider = new ethers.BrowserProvider(eth);
-      const bal = await provider.getBalance(account);
-      setBalanceRaw(bal);
-      const formatted = ethers.formatEther(bal);
-      setBalance(parseFloat(formatted).toFixed(4));
     } catch (err) {
-      console.warn("Could not fetch balance from MetaMask:", err);
+      console.warn("Could not fetch wallet balance:", err);
     }
   }, []);
 
   // Refresh active chain & account
   const refreshAccount = useCallback(async () => {
-    if (typeof window === "undefined" || !(window as any).ethereum) return;
+    const eth = getEthereumProvider();
+    if (!eth) return;
     try {
-      const eth = (window as any).ethereum;
-      
-      // Get current chain directly
       const hexChainId = await eth.request({ method: "eth_chainId" });
       if (hexChainId) {
         setChainId(parseInt(hexChainId, 16));
       }
 
-      // Get current accounts
+      const isManuallyDisconnected = typeof window !== "undefined" && localStorage.getItem(DISCONNECT_STORAGE_KEY) === "true";
+      if (isManuallyDisconnected) {
+        setAddress(null);
+        setBalance("0.0000");
+        setBalanceRaw(null);
+        return;
+      }
+
       const accounts = await eth.request({ method: "eth_accounts" });
 
       if (accounts && accounts.length > 0) {
@@ -133,26 +184,47 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
 
   // Connect MetaMask Wallet
   const connectWallet = useCallback(async (): Promise<string | null> => {
-    if (typeof window === "undefined" || !(window as any).ethereum) {
-      setError("MetaMask is not installed. Please install MetaMask to continue.");
+    const eth = getEthereumProvider();
+    if (!eth) {
+      if (typeof window !== "undefined") {
+        window.open("https://metamask.io/download/", "_blank");
+      }
       return null;
     }
 
     setIsConnecting(true);
     setError(null);
+    if (typeof window !== "undefined") {
+      localStorage.removeItem(DISCONNECT_STORAGE_KEY);
+    }
 
     try {
-      const eth = (window as any).ethereum;
-      const accounts = await eth.request({ method: "eth_requestAccounts" });
+      let accounts: string[] = [];
+      try {
+        accounts = await eth.request({ method: "eth_requestAccounts" });
+      } catch (reqErr: any) {
+        if (reqErr.code === -32002) {
+          // Request already pending, fetch available accounts
+          accounts = await eth.request({ method: "eth_accounts" });
+        } else {
+          throw reqErr;
+        }
+      }
+
+      if (!accounts || accounts.length === 0) {
+        accounts = await eth.request({ method: "eth_accounts" });
+      }
       
       if (accounts && accounts.length > 0) {
         const activeAddr = accounts[0];
         setAddress(activeAddr);
 
-        const hexChainId = await eth.request({ method: "eth_chainId" });
-        if (hexChainId) {
-          setChainId(parseInt(hexChainId, 16));
-        }
+        try {
+          const hexChainId = await eth.request({ method: "eth_chainId" });
+          if (hexChainId) {
+            setChainId(parseInt(hexChainId, 16));
+          }
+        } catch (e) {}
 
         await updateBalance(activeAddr);
         setIsConnecting(false);
@@ -168,21 +240,24 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
     }
   }, [updateBalance]);
 
-  // Disconnect
+  // Disconnect Wallet
   const disconnectWallet = useCallback(() => {
+    if (typeof window !== "undefined") {
+      localStorage.setItem(DISCONNECT_STORAGE_KEY, "true");
+    }
     setAddress(null);
     setBalance("0.0000");
     setBalanceRaw(null);
-    setChainId(null);
   }, []);
 
   // Switch network between Sepolia and Amoy
   const switchNetwork = useCallback(async (target: "sepolia" | "amoy"): Promise<boolean> => {
-    if (typeof window === "undefined" || !(window as any).ethereum) return false;
+    const eth = getEthereumProvider();
+    if (!eth) return false;
 
     const params = CHAIN_PARAMS[target];
     try {
-      await (window as any).ethereum.request({
+      await eth.request({
         method: "wallet_switchEthereumChain",
         params: [{ chainId: params.chainId }],
       });
@@ -191,7 +266,7 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
     } catch (switchError: any) {
       if (switchError.code === 4902 || switchError?.data?.originalError?.code === 4902) {
         try {
-          await (window as any).ethereum.request({
+          await eth.request({
             method: "wallet_addEthereumChain",
             params: [params],
           });
@@ -212,12 +287,13 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
     toAddress: string,
     amountEth: string
   ): Promise<{ success: boolean; hash?: string; error?: string }> => {
-    if (typeof window === "undefined" || !(window as any).ethereum || !address) {
+    const eth = getEthereumProvider();
+    if (!eth || !addressRef.current) {
       return { success: false, error: "Wallet not connected" };
     }
 
     try {
-      const provider = new ethers.BrowserProvider((window as any).ethereum);
+      const provider = new ethers.BrowserProvider(eth);
       const signer = await provider.getSigner();
 
       const tx = await signer.sendTransaction({
@@ -226,7 +302,9 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
       });
 
       const receipt = await tx.wait(1);
-      await updateBalance(address);
+      if (addressRef.current) {
+        await updateBalance(addressRef.current);
+      }
 
       return {
         success: true,
@@ -239,18 +317,19 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
         error: err?.message || "Transaction rejected by user",
       };
     }
-  }, [address, updateBalance]);
+  }, [updateBalance]);
 
   // Real EIP-712 Typed Data Signing via MetaMask
   const signClaimMessage = useCallback(async (
     typedData: any
   ): Promise<{ success: boolean; signature?: string; error?: string }> => {
-    if (typeof window === "undefined" || !(window as any).ethereum || !address) {
+    const eth = getEthereumProvider();
+    if (!eth || !addressRef.current) {
       return { success: false, error: "Wallet not connected" };
     }
 
     try {
-      const provider = new ethers.BrowserProvider((window as any).ethereum);
+      const provider = new ethers.BrowserProvider(eth);
       const signer = await provider.getSigner();
 
       const signature = await signer.signTypedData(
@@ -270,19 +349,24 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
         error: err?.message || "Signature rejected by user",
       };
     }
-  }, [address]);
+  }, []);
 
-  // Listen to MetaMask account and chain changes + Poll balance
+  // Listen to MetaMask events once on mount & set up balance polling
   useEffect(() => {
-    if (typeof window === "undefined" || !(window as any).ethereum) return;
-
-    const eth = (window as any).ethereum;
+    const eth = getEthereumProvider();
+    if (!eth) return;
 
     const handleAccountsChanged = (accounts: string[]) => {
       if (accounts.length > 0) {
+        if (typeof window !== "undefined") {
+          localStorage.removeItem(DISCONNECT_STORAGE_KEY);
+        }
         setAddress(accounts[0]);
         updateBalance(accounts[0]);
       } else {
+        if (typeof window !== "undefined") {
+          localStorage.setItem(DISCONNECT_STORAGE_KEY, "true");
+        }
         setAddress(null);
         setBalance("0.0000");
         setBalanceRaw(null);
@@ -293,10 +377,8 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
       if (newHexChainId) {
         setChainId(parseInt(newHexChainId, 16));
       }
-      if (address) {
-        updateBalance(address);
-      } else {
-        refreshAccount();
+      if (addressRef.current) {
+        updateBalance(addressRef.current);
       }
     };
 
@@ -306,12 +388,12 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
     // Initial check on mount
     refreshAccount();
 
-    // Auto-poll balance every 4 seconds to ensure exact sync with MetaMask
+    // Auto-poll balance every 3 seconds if connected
     const interval = setInterval(() => {
-      if (address) {
-        updateBalance(address);
+      if (addressRef.current) {
+        updateBalance(addressRef.current);
       }
-    }, 4000);
+    }, 3000);
 
     return () => {
       clearInterval(interval);
@@ -320,7 +402,7 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
         eth.removeListener("chainChanged", handleChainChanged);
       }
     };
-  }, [address, refreshAccount, updateBalance]);
+  }, [refreshAccount, updateBalance]);
 
   const isConnected = !!address;
   const shortAddress = address ? `${address.slice(0, 6)}...${address.slice(-4)}` : "";

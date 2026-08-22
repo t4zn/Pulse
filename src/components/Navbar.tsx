@@ -144,9 +144,14 @@ export function Navbar() {
                 </button>
               ) : (
                 <button
-                  onClick={connectWallet}
+                  type="button"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    connectWallet();
+                  }}
                   disabled={isConnecting}
-                  className="flex items-center gap-2 px-4 py-1.5 rounded-full bg-primary hover:bg-primary-hover active:bg-primary-active text-white text-xs font-semibold transition-all shadow-sm disabled:opacity-50 whitespace-nowrap"
+                  className="flex items-center gap-2 px-4 py-1.5 rounded-full bg-primary hover:bg-primary-hover active:bg-primary-active text-white text-xs font-semibold transition-all shadow-sm disabled:opacity-50 whitespace-nowrap cursor-pointer"
                 >
                   <Wallet className="w-3.5 h-3.5" />
                   <span>{isConnecting ? "Connecting..." : "Connect"}</span>
