@@ -39,10 +39,10 @@ export function Navbar() {
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   const navLinks = [
-    { name: "Active Crises", href: "/crisis/turkey-earthquake-2026" },
-    { name: "Beneficiary Claim", href: "/beneficiary" },
-    { name: "Live Audit", href: "/audit" },
-    { name: "AI Oracle", href: "/oracle" },
+    { name: "Crises", href: "/crisis/turkey-earthquake-2026" },
+    { name: "Claims", href: "/beneficiary" },
+    { name: "Audit", href: "/audit" },
+    { name: "Oracle", href: "/oracle" },
   ];
 
   // Close dropdown when clicking outside
