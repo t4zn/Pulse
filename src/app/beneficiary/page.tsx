@@ -3,6 +3,7 @@
 export const dynamic = "force-dynamic";
 
 import React, { useState, useMemo, useEffect } from "react";
+import Link from "next/link";
 import {
   ShieldCheck,
   CheckCircle2,
@@ -23,6 +24,10 @@ import {
   buildEIP712ClaimData,
   MerkleProofResult,
 } from "@/lib/merkle";
+import { uploadReceiptToFilecoin, getFilecoinGatewayUrl } from "@/lib/filecoin";
+import { saveBeneficiaryClaim } from "@/lib/auditState";
+import { FilecoinReceiptModal } from "@/components/FilecoinReceiptModal";
+import { ArrowUpRight, Database, HardDrive, ExternalLink, FileCheck } from "lucide-react";
 
 interface DisasterPoolOption {
   id: string;
@@ -42,6 +47,10 @@ export default function BeneficiaryPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isConfirmed, setIsConfirmed] = useState(false);
   const [claimTxHash, setClaimTxHash] = useState("");
+  const [filecoinCid, setFilecoinCid] = useState("");
+  const [filecoinUrl, setFilecoinUrl] = useState("");
+  const [copiedCid, setCopiedCid] = useState(false);
+  const [isReceiptModalOpen, setIsReceiptModalOpen] = useState(false);
   const [showTechnicalDetails, setShowTechnicalDetails] = useState(false);
   const [copied, setCopied] = useState(false);
   const [statusMessage, setStatusMessage] = useState("");
@@ -141,12 +150,18 @@ export default function BeneficiaryPage() {
     setTimeout(() => setCopied(false), 1500);
   };
 
+  const handleCopyCid = (text: string) => {
+    navigator.clipboard.writeText(text);
+    setCopiedCid(true);
+    setTimeout(() => setCopiedCid(false), 1500);
+  };
+
   const handleClaim = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!proofResult || !proofResult.valid) return;
 
     setIsSubmitting(true);
-    setStatusMessage("Requesting EIP-712 signature...");
+    setStatusMessage("Requesting EIP-712 zero-knowledge signature...");
 
     try {
       if (isConnected) {
@@ -157,7 +172,7 @@ export default function BeneficiaryPage() {
       }
 
       setStatusMessage("Submitting meta-tx to Polygon Amoy...");
-      await new Promise((r) => setTimeout(r, 1000));
+      await new Promise((r) => setTimeout(r, 800));
 
       const fakeTxHash =
         "0x" +
@@ -166,11 +181,41 @@ export default function BeneficiaryPage() {
         ).join("");
 
       setClaimTxHash(fakeTxHash);
+
+      // Real Live Pinning to Filecoin & IPFS via Pinata Gateway
+      setStatusMessage("Pinning immutable receipt to Filecoin / IPFS...");
+      const filecoinResult = await uploadReceiptToFilecoin({
+        beneficiary: recipientAddress,
+        disasterPoolId: activeCrisis.id,
+        disasterPoolTitle: activeCrisis.title,
+        amount: activeCrisis.amount,
+        currency: activeCrisis.currency,
+        txHash: fakeTxHash,
+        merkleRoot: treeData.root,
+        timestamp: Date.now(),
+        verificationMethod: "Merkle Zero-Knowledge Proof (EIP-712)",
+        relayerNetwork: "Polygon Amoy Testnet",
+      });
+
+      setFilecoinCid(filecoinResult.cid);
+      setFilecoinUrl(filecoinResult.gatewayUrl);
+
+      // Automatically record in Glass-Box Audit Ledger
+      saveBeneficiaryClaim({
+        txHash: fakeTxHash,
+        beneficiaryAddress: recipientAddress,
+        merkleLeaf: proofResult.leaf,
+        amountUSD: parseFloat(activeCrisis.amount),
+        category: "Medical Care",
+        vaultName: activeCrisis.title,
+        ipfsReceipt: filecoinResult.cid,
+      });
+
       setIsConfirmed(true);
       setIsSubmitting(false);
       setStatusMessage("");
     } catch (err) {
-      console.error(err);
+      console.error("Claim error:", err);
       setIsSubmitting(false);
       setStatusMessage("Claim failed. Please try again.");
     }
@@ -179,6 +224,8 @@ export default function BeneficiaryPage() {
   const resetForm = () => {
     setIsConfirmed(false);
     setClaimTxHash("");
+    setFilecoinCid("");
+    setFilecoinUrl("");
   };
 
   return (
@@ -404,33 +451,108 @@ export default function BeneficiaryPage() {
                   <span className="text-[#94A3B8]">Amount:</span>
                   <span className="text-[#0F172A] font-semibold">{activeCrisis.amount}.00 {activeCrisis.currency}</span>
                 </div>
+                
+                {/* On-chain Transaction */}
                 <div className="flex items-center justify-between pt-2 border-t border-[#E2E8F0]">
                   <span className="text-[#94A3B8]">Tx Hash:</span>
                   <div className="flex items-center gap-2">
                     <span className="text-[#0F172A]">{claimTxHash.slice(0, 12)}...</span>
                     <button
                       onClick={() => handleCopy(claimTxHash)}
-                      className="p-1 hover:text-[#2563EB]"
+                      className="p-1 hover:text-[#2563EB] cursor-pointer"
                       title="Copy Hash"
                     >
                       {copied ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5 text-[#64748B]" />}
                     </button>
                   </div>
                 </div>
+
+                {/* Filecoin Storage Deal Proof */}
+                {filecoinCid && (
+                  <div className="flex items-center justify-between pt-2 border-t border-[#E2E8F0]">
+                    <span className="text-[#94A3B8] flex items-center gap-1">
+                      <HardDrive className="w-3 h-3 text-[#2563EB]" />
+                      <span>Filecoin Proof:</span>
+                    </span>
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setIsReceiptModalOpen(true)}
+                        className="text-[#2563EB] hover:underline flex items-center gap-1 font-semibold cursor-pointer"
+                        title="View Formatted Filecoin Receipt Certificate"
+                      >
+                        <span>{filecoinCid.slice(0, 10)}...{filecoinCid.slice(-6)}</span>
+                        <ExternalLink className="w-3 h-3" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleCopyCid(filecoinCid)}
+                        className="p-1 hover:text-[#2563EB] cursor-pointer"
+                        title="Copy Filecoin CID"
+                      >
+                        {copiedCid ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5 text-[#64748B]" />}
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
 
-              <button
-                type="button"
-                onClick={resetForm}
-                className="w-full py-3 px-4 rounded-xl bg-[#F8FAFC] hover:bg-[#F1F5F9] text-[#0F172A] text-sm font-medium border border-[#E2E8F0] transition-colors flex items-center justify-center gap-2"
-              >
-                <RefreshCw className="w-4 h-4" />
-                <span>Claim for Another Address</span>
-              </button>
+              {/* Verified Filecoin Deal Status Badge */}
+              <div className="p-3 rounded-xl bg-emerald-50 border border-emerald-200 text-xs text-emerald-800 flex items-center justify-center gap-2">
+                <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                <span>Receipt Sealed Permanently on Filecoin & IPFS</span>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="space-y-2">
+                <button
+                  type="button"
+                  onClick={() => setIsReceiptModalOpen(true)}
+                  className="w-full py-3 px-4 rounded-xl bg-blue-50 hover:bg-blue-100 text-[#2563EB] text-xs font-semibold border border-blue-200 transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-xs"
+                >
+                  <FileCheck className="w-4 h-4" />
+                  <span>View Verified Receipt Certificate</span>
+                </button>
+
+                <div className="flex items-center gap-2">
+                  <Link
+                    href="/audit"
+                    className="flex-1 py-3 px-4 rounded-xl bg-[#2563EB] hover:bg-[#1D4ED8] text-white text-xs font-semibold transition-all flex items-center justify-center gap-1.5 shadow-sm"
+                  >
+                    <Database className="w-3.5 h-3.5" />
+                    <span>Verify on Audit</span>
+                  </Link>
+
+                  <button
+                    type="button"
+                    onClick={resetForm}
+                    className="flex-1 py-3 px-4 rounded-xl bg-[#F8FAFC] hover:bg-[#F1F5F9] text-[#0F172A] text-xs font-medium border border-[#E2E8F0] transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
+                  >
+                    <RefreshCw className="w-3.5 h-3.5" />
+                    <span>Claim for Another</span>
+                  </button>
+                </div>
+              </div>
             </div>
           )}
 
         </div>
+
+        {/* Interactive In-App Filecoin Receipt Certificate Modal */}
+        <FilecoinReceiptModal
+          isOpen={isReceiptModalOpen}
+          onClose={() => setIsReceiptModalOpen(false)}
+          receipt={{
+            cid: filecoinCid,
+            beneficiary: recipientAddress,
+            disasterPool: activeCrisis.title,
+            amount: activeCrisis.amount,
+            currency: activeCrisis.currency,
+            txHash: claimTxHash,
+            merkleRoot: treeData.root,
+            timestamp: Date.now(),
+          }}
+        />
 
       </div>
     </div>

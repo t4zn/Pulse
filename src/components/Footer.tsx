@@ -10,9 +10,11 @@ export function Footer() {
           {/* Brand & Mission */}
           <div className="lg:col-span-2 space-y-4">
             <div className="flex items-center gap-2.5">
-              <div className="w-7 h-7 rounded-full bg-primary flex items-center justify-center text-white">
-                <Zap className="w-3.5 h-3.5" />
-              </div>
+              <img
+                src="/ico.png"
+                alt="PULSE Protocol"
+                className="w-7 h-7 rounded-lg object-contain"
+              />
               <span className="font-semibold text-base tracking-tight text-ink">
                 PULSE PROTOCOL
               </span>

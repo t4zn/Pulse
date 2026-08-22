@@ -130,40 +130,7 @@ export default function CommandCenterHome() {
 
   const filteredCrises = activeTab === "all" ? crises : crises.filter((c) => c.category === activeTab);
 
-  const liveTransactions = [
-    {
-      hash: "0x9f1a...4b22",
-      chainBadge: "POL",
-      type: "Donation",
-      amount: "$2,500 POL",
-      target: "Turkey Relief Vault",
-      time: "12s ago",
-    },
-    {
-      hash: "0x4c88...1d09",
-      chainBadge: "ETH",
-      type: "Aid Payout",
-      amount: "$150 USDC",
-      target: "Victim #Merkle-8831",
-      time: "34s ago",
-    },
-    {
-      hash: "0x1b77...8e34",
-      chainBadge: "POL",
-      type: "AI Release",
-      amount: "$50,000 POL",
-      target: "Gemini 2.5 Auto Unlock (20%)",
-      time: "1m ago",
-    },
-    {
-      hash: "0x82e0...5f11",
-      chainBadge: "ETH",
-      type: "Donation",
-      amount: "1.5 ETH ($4,120)",
-      target: "Kerala Flood Pool",
-      time: "2m ago",
-    },
-  ];
+
 
   const coreModules = [
     {
@@ -271,7 +238,7 @@ export default function CommandCenterHome() {
         <div className="max-w-[1240px] mx-auto text-center space-y-8">
           
           {/* Eyebrow Pill Badge */}
-          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white border border-[#E2E8F0] shadow-sm text-xs font-mono text-[#475569] hover:border-blue-300 transition-colors">
+          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white border border-[#E2E8F0] shadow-sm text-xs text-[#475569] hover:border-blue-300 transition-colors font-medium">
             <span className="flex h-2 w-2 relative">
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#16A34A] opacity-75"></span>
               <span className="relative inline-flex rounded-full h-2 w-2 bg-[#16A34A]"></span>
@@ -296,30 +263,22 @@ export default function CommandCenterHome() {
             </p>
           </div>
 
-          {/* Hero CTA Button Group */}
+          {/* Hero CTA Button Group: Exactly 2 clean buttons (Donate & Claim) */}
           <div className="flex flex-wrap items-center justify-center gap-3.5 pt-2">
             <Link
-              href="/crisis/turkey-earthquake-2026"
-              className="px-8 py-3.5 rounded-full bg-[#2563EB] hover:bg-[#1D4ED8] active:bg-[#1E40AF] text-white text-sm font-bold flex items-center gap-2.5 shadow-[0_4px_14px_rgba(37,99,235,0.25)] hover:-translate-y-0.5 transition-all"
+              href="/crisis"
+              className="px-8 py-3.5 rounded-full bg-[#2563EB] hover:bg-[#1D4ED8] active:bg-[#1E40AF] text-white text-sm font-bold flex items-center gap-2 shadow-[0_4px_14px_rgba(37,99,235,0.25)] hover:-translate-y-0.5 transition-all"
             >
               <Heart className="w-4 h-4 fill-white" />
-              <span>Donate Direct Relief</span>
+              <span>Donate Relief</span>
             </Link>
 
-            <button
-              onClick={() => setSwapModalOpen(true)}
-              className="px-6 py-3.5 rounded-full bg-white hover:bg-[#F8FAFC] text-[#0F172A] text-sm font-semibold border border-[#E2E8F0] hover:border-[#CBD5E1] shadow-sm flex items-center gap-2 hover:-translate-y-0.5 transition-all"
-            >
-              <ArrowDownUp className="w-4 h-4 text-[#2563EB]" />
-              <span>Swap Currency</span>
-            </button>
-
             <Link
-              href="/audit"
-              className="px-6 py-3.5 rounded-full bg-white hover:bg-[#F8FAFC] text-[#0F172A] text-sm font-semibold border border-[#E2E8F0] hover:border-[#CBD5E1] shadow-sm flex items-center gap-2 hover:-translate-y-0.5 transition-all"
+              href="/beneficiary"
+              className="px-8 py-3.5 rounded-full bg-white hover:bg-[#F8FAFC] text-[#0F172A] text-sm font-bold border border-[#E2E8F0] hover:border-[#CBD5E1] shadow-xs flex items-center gap-2 hover:-translate-y-0.5 transition-all"
             >
-              <Search className="w-4 h-4 text-[#64748B]" />
-              <span>Live Public Audit</span>
+              <ShieldCheck className="w-4 h-4 text-[#2563EB]" />
+              <span>Claim Aid</span>
             </Link>
           </div>
 
@@ -340,12 +299,12 @@ export default function CommandCenterHome() {
                       <HeartHandshake className="w-6 h-6" />
                     </div>
                     <div>
-                      <div className="text-xs font-mono text-[#64748B] uppercase tracking-wider font-semibold">LIVE HUMANITARIAN VAULT STATE</div>
+                      <div className="text-xs text-[#64748B] uppercase tracking-wider font-bold">LIVE HUMANITARIAN VAULT STATE</div>
                       <div className="text-base sm:text-lg font-bold text-[#0F172A]">Unified Cross-Chain Emergency Reserve</div>
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-2 font-mono text-xs">
+                  <div className="flex items-center gap-2 text-xs">
                     <span className="px-3.5 py-1.5 rounded-full bg-emerald-50 text-[#16A34A] border border-emerald-200 font-bold flex items-center gap-1.5 shadow-xs">
                       <span className="w-2 h-2 rounded-full bg-[#16A34A] animate-ping"></span>
                       100% Verifiable &bull; 0% Overhead
@@ -359,10 +318,10 @@ export default function CommandCenterHome() {
                     <div className="text-[11px] font-bold text-[#64748B] uppercase tracking-wider mb-1">
                       Aggregated Vaults
                     </div>
-                    <div className="text-2xl sm:text-3xl font-mono font-extrabold text-[#0F172A]">
+                    <div className="text-2xl sm:text-3xl font-extrabold text-[#0F172A] tracking-tight">
                       $1,240,500
                     </div>
-                    <div className="text-xs font-mono text-[#16A34A] font-semibold mt-1 flex items-center gap-1">
+                    <div className="text-xs text-[#16A34A] font-semibold mt-1 flex items-center gap-1">
                       <Check className="w-3.5 h-3.5 text-[#16A34A]" /> Sepolia + Amoy Unified
                     </div>
                   </div>
@@ -371,10 +330,10 @@ export default function CommandCenterHome() {
                     <div className="text-[11px] font-bold text-[#64748B] uppercase tracking-wider mb-1">
                       Aid Disbursed
                     </div>
-                    <div className="text-2xl sm:text-3xl font-mono font-extrabold text-[#2563EB]">
+                    <div className="text-2xl sm:text-3xl font-extrabold text-[#2563EB] tracking-tight">
                       $980,000
                     </div>
-                    <div className="text-xs font-mono text-[#64748B] font-medium mt-1">
+                    <div className="text-xs text-[#64748B] font-medium mt-1">
                       100% to verified victims
                     </div>
                   </div>
@@ -383,10 +342,10 @@ export default function CommandCenterHome() {
                     <div className="text-[11px] font-bold text-[#64748B] uppercase tracking-wider mb-1">
                       Verified Beneficiaries
                     </div>
-                    <div className="text-2xl sm:text-3xl font-mono font-extrabold text-[#0F172A]">
+                    <div className="text-2xl sm:text-3xl font-extrabold text-[#0F172A] tracking-tight">
                       14,280
                     </div>
-                    <div className="text-xs font-mono text-[#64748B] font-medium mt-1">
+                    <div className="text-xs text-[#64748B] font-medium mt-1">
                       Verified Merkle claims
                     </div>
                   </div>
@@ -395,10 +354,10 @@ export default function CommandCenterHome() {
                     <div className="text-[11px] font-bold text-[#64748B] uppercase tracking-wider mb-1">
                       AI Triggers Active
                     </div>
-                    <div className="text-2xl sm:text-3xl font-mono font-extrabold text-[#16A34A]">
+                    <div className="text-2xl sm:text-3xl font-extrabold text-[#16A34A] tracking-tight">
                       3 / 3 Vaults
                     </div>
-                    <div className="text-xs font-mono text-[#64748B] font-medium mt-1">
+                    <div className="text-xs text-[#64748B] font-medium mt-1">
                       Gemini 2.5 Flash Oracle
                     </div>
                   </div>
@@ -418,7 +377,7 @@ export default function CommandCenterHome() {
         <div className="max-w-[1240px] mx-auto space-y-12">
           
           <div className="text-center space-y-3 max-w-2xl mx-auto">
-            <span className="text-xs font-bold font-mono uppercase tracking-widest text-[#2563EB] bg-blue-50 px-3 py-1 rounded-full border border-blue-200">
+            <span className="text-xs font-bold uppercase tracking-widest text-[#2563EB] bg-blue-50 px-3 py-1 rounded-full border border-blue-200">
               REAL-WORLD HUMAN IMPACT
             </span>
             <h2 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-[#0F172A]">
@@ -441,7 +400,7 @@ export default function CommandCenterHome() {
                     <div className={`w-12 h-12 rounded-2xl flex items-center justify-center border ${item.accent} shadow-xs`}>
                       <Icon className="w-6 h-6" />
                     </div>
-                    <div className="text-3xl font-extrabold font-mono text-[#0F172A] tracking-tight">
+                    <div className="text-3xl font-extrabold text-[#0F172A] tracking-tight">
                       {item.count}
                     </div>
                     <div className="text-base font-bold text-[#0F172A]">
@@ -481,7 +440,7 @@ export default function CommandCenterHome() {
         <div className="max-w-[1240px] mx-auto space-y-12">
           
           <div className="text-center space-y-3 max-w-2xl mx-auto">
-            <span className="text-xs font-bold font-mono uppercase tracking-widest text-[#2563EB]">
+            <span className="text-xs font-bold uppercase tracking-widest text-[#2563EB]">
               TRANSPARENT LIFE CYCLE
             </span>
             <h2 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-[#0F172A]">
@@ -505,7 +464,7 @@ export default function CommandCenterHome() {
                       <div className="w-12 h-12 rounded-2xl bg-blue-50 border border-blue-100 flex items-center justify-center text-[#2563EB] shadow-xs">
                         <StepIcon className="w-6 h-6" />
                       </div>
-                      <span className="text-2xl font-extrabold font-mono text-[#CBD5E1]">
+                      <span className="text-2xl font-extrabold text-[#CBD5E1]">
                         {s.step}
                       </span>
                     </div>
@@ -532,7 +491,7 @@ export default function CommandCenterHome() {
           
           <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
             <div className="space-y-2">
-              <span className="text-xs font-bold font-mono uppercase tracking-widest text-[#2563EB]">
+              <span className="text-xs font-bold uppercase tracking-widest text-[#2563EB]">
                 PROTOCOL CAPABILITIES
               </span>
               <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold tracking-tight text-[#0F172A]">
@@ -558,7 +517,7 @@ export default function CommandCenterHome() {
                       <div className="w-12 h-12 rounded-2xl bg-white border border-[#E2E8F0] flex items-center justify-center text-[#2563EB] group-hover:bg-[#2563EB] group-hover:text-white transition-colors duration-300 shadow-sm">
                         <Icon className="w-6 h-6" />
                       </div>
-                      <span className={`text-[10px] font-mono font-bold px-2.5 py-0.5 rounded-full border ${mod.badgeColor}`}>
+                      <span className={`text-[10px] font-bold px-2.5 py-0.5 rounded-full border ${mod.badgeColor}`}>
                         {mod.badge}
                       </span>
                     </div>
@@ -573,8 +532,8 @@ export default function CommandCenterHome() {
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-1.5 text-xs font-semibold text-[#2563EB] pt-5 mt-4 border-t border-[#E2E8F0] group-hover:gap-2 transition-all">
-                    <span>Open Module</span>
+                  <div className="pt-4 mt-4 border-t border-[#E2E8F0] flex items-center gap-1 text-xs font-semibold text-[#2563EB] group-hover:translate-x-1 transition-transform">
+                    <span>Access Module</span>
                     <ArrowRight className="w-3.5 h-3.5" />
                   </div>
                 </Link>
@@ -586,313 +545,123 @@ export default function CommandCenterHome() {
       </section>
 
       {/* ────────────────────────────────────────────────────────────────────────
-          5. ACTIVE CRISES SECTION (Category Tabs, Telemetry Strip, Crisis Cards)
+          5. ACTIVE DISASTER VAULTS (Compact, Sleek & Minimal)
           ──────────────────────────────────────────────────────────────────────── */}
-      <section className="py-20 px-4 md:px-8 bg-[#F8FAFC] border-t border-[#E2E8F0]">
-        <div className="max-w-[1240px] mx-auto space-y-10">
+      <section className="py-14 px-4 md:px-8 bg-[#F8FAFC] border-t border-[#E2E8F0]">
+        <div className="max-w-[1240px] mx-auto space-y-6">
           
-          {/* Header & Tabs */}
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 pb-2">
-            <div className="space-y-1">
-              <h2 className="text-2xl sm:text-3xl font-bold tracking-tight text-[#0F172A] flex items-center gap-2.5">
-                <Radio className="w-6 h-6 text-[#2563EB]" />
-                <span>Active Disaster Liquidity Vaults</span>
-              </h2>
-              <p className="text-sm text-[#475569]">
-                Live emergency pools receiving global liquidity and disbursing direct victim aid.
+          {/* Section Header */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                <h2 className="text-xl sm:text-2xl font-bold tracking-tight text-[#0F172A]">
+                  Active Disaster Liquidity Vaults
+                </h2>
+              </div>
+              <p className="text-xs sm:text-sm text-[#64748B] mt-0.5">
+                Real-time emergency pools triggered by live USGS and NASA sensor telemetry.
               </p>
-            </div>
-
-            {/* Category Filter Pills */}
-            <div className="flex items-center gap-1 p-1 rounded-full bg-white border border-[#E2E8F0] text-xs font-medium self-start md:self-auto shadow-xs">
-              <button
-                onClick={() => setActiveTab("all")}
-                className={`px-4 py-1.5 rounded-full transition-all ${
-                  activeTab === "all" ? "bg-[#2563EB] text-white font-bold shadow-sm" : "text-[#64748B] hover:text-[#0F172A]"
-                }`}
-              >
-                All ({crises.length})
-              </button>
-              <button
-                onClick={() => setActiveTab("earthquake")}
-                className={`px-4 py-1.5 rounded-full transition-all ${
-                  activeTab === "earthquake" ? "bg-[#2563EB] text-white font-bold shadow-sm" : "text-[#64748B] hover:text-[#0F172A]"
-                }`}
-              >
-                Earthquake
-              </button>
-              <button
-                onClick={() => setActiveTab("flood")}
-                className={`px-4 py-1.5 rounded-full transition-all ${
-                  activeTab === "flood" ? "bg-[#2563EB] text-white font-bold shadow-sm" : "text-[#64748B] hover:text-[#0F172A]"
-                }`}
-              >
-                Flood
-              </button>
-              <button
-                onClick={() => setActiveTab("drought")}
-                className={`px-4 py-1.5 rounded-full transition-all ${
-                  activeTab === "drought" ? "bg-[#2563EB] text-white font-bold shadow-sm" : "text-[#64748B] hover:text-[#0F172A]"
-                }`}
-              >
-                Drought
-              </button>
-            </div>
-          </div>
-
-          {/* Priority Telemetry Strip */}
-          <div className="p-6 rounded-2xl bg-white border border-[#E2E8F0] shadow-sm space-y-4">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-[#E2E8F0]">
-              <div className="flex items-center gap-2.5">
-                <span className="w-2.5 h-2.5 rounded-full bg-[#16A34A] animate-pulse" />
-                <span className="text-xs font-bold uppercase tracking-wider text-[#0F172A]">
-                  Priority Active Crisis Telemetry
-                </span>
-                <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-rose-50 text-rose-700 border border-rose-200">
-                  CRITICAL
-                </span>
-              </div>
-              <div className="flex items-center gap-4 text-xs font-mono text-[#475569]">
-                <div>Updated: <strong className="text-[#0F172A]">3s ago</strong></div>
-                <Link
-                  href="/crisis/turkey-earthquake-2026#live-crisis-map"
-                  className="text-[#2563EB] hover:underline font-semibold flex items-center gap-1"
-                >
-                  <span>Live Map</span>
-                  <span>&rarr;</span>
-                </Link>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 font-mono text-xs">
-              <div className="p-3.5 rounded-xl bg-[#F8FAFC] border border-[#E2E8F0]">
-                <div className="text-[10px] text-[#64748B] uppercase font-medium">Status</div>
-                <div className="text-rose-600 font-bold mt-0.5">Active — Critical</div>
-              </div>
-              <div className="p-3.5 rounded-xl bg-[#F8FAFC] border border-[#E2E8F0]">
-                <div className="text-[10px] text-[#64748B] uppercase font-medium">Started</div>
-                <div className="text-[#0F172A] font-semibold mt-0.5">14:32 UTC</div>
-              </div>
-              <div className="p-3.5 rounded-xl bg-[#F8FAFC] border border-[#E2E8F0]">
-                <div className="text-[10px] text-[#64748B] uppercase font-medium">Severity</div>
-                <div className="text-rose-600 font-bold mt-0.5">9.4 / 10</div>
-              </div>
-              <div className="p-3.5 rounded-xl bg-[#F8FAFC] border border-[#E2E8F0]">
-                <div className="text-[10px] text-[#64748B] uppercase font-medium">Affected</div>
-                <div className="text-[#0F172A] font-semibold mt-0.5">2.4M People</div>
-              </div>
-              <div className="p-3.5 rounded-xl bg-[#F8FAFC] border border-[#E2E8F0]">
-                <div className="text-[10px] text-[#64748B] uppercase font-medium">Immediate Aid</div>
-                <div className="text-[#2563EB] font-bold mt-0.5">842K Needed</div>
-              </div>
-              <div className="p-3.5 rounded-xl bg-[#F8FAFC] border border-[#E2E8F0]">
-                <div className="text-[10px] text-[#64748B] uppercase font-medium">Area</div>
-                <div className="text-[#0F172A] font-semibold mt-0.5">18,420 km&sup2;</div>
-              </div>
-            </div>
-          </div>
-
-          {/* Crisis Cards Grid with Human Impact Badges */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            {filteredCrises.map((crisis) => {
-              const percent = Math.min(100, Math.round((crisis.raisedUSD / crisis.targetUSD) * 100));
-              return (
-                <div
-                  key={crisis.id}
-                  className="flex flex-col justify-between p-6 sm:p-7 rounded-2xl bg-white border border-[#E2E8F0] hover:border-blue-300 hover:shadow-[0_12px_30px_rgba(15,23,42,0.06)] transition-all duration-300"
-                >
-                  <div className="space-y-4">
-                    {/* Top Status & Category Badge */}
-                    <div className="flex items-center justify-between gap-2">
-                      <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold uppercase border ${crisis.statusBadge}`}>
-                        {crisis.severityStatus} &bull; {crisis.severity}
-                      </span>
-                      <span className="text-xs font-semibold text-[#64748B]">
-                        {crisis.categoryName}
-                      </span>
-                    </div>
-
-                    {/* Crisis Title & Location */}
-                    <div>
-                      <h3 className="text-lg font-bold text-[#0F172A] leading-snug">
-                        {crisis.title}
-                      </h3>
-                      <div className="text-xs text-[#475569] flex items-center gap-1.5 mt-1.5">
-                        <MapPin className="w-3.5 h-3.5 text-[#64748B]" />
-                        <span>{crisis.location}</span>
-                      </div>
-                    </div>
-
-                    {/* Heartwarming Impact Pill */}
-                    <div className="p-3 rounded-xl bg-emerald-50/70 border border-emerald-100 flex items-center gap-2 text-xs font-semibold text-emerald-800">
-                      <Heart className="w-3.5 h-3.5 text-emerald-600 fill-emerald-600 shrink-0" />
-                      <span>{crisis.humanImpact}</span>
-                    </div>
-
-                    {/* Telemetry Sensor Box */}
-                    <div className="p-3.5 rounded-xl bg-[#F8FAFC] border border-[#E2E8F0] text-xs font-mono text-[#475569]">
-                      <div className="text-[10px] text-[#64748B] uppercase font-bold mb-0.5">Live Sensor:</div>
-                      <div className="text-[#0F172A]">{crisis.telemetry}</div>
-                    </div>
-
-                    {/* Funding Progress */}
-                    <div className="space-y-2 pt-1">
-                      <div className="flex items-center justify-between text-xs font-mono">
-                        <span className="text-[#475569]">Pool Raised:</span>
-                        <span className="text-[#0F172A] font-bold">${crisis.raisedUSD.toLocaleString()} / ${crisis.targetUSD.toLocaleString()}</span>
-                      </div>
-                      <div className="w-full h-2.5 bg-[#F1F5F9] rounded-full overflow-hidden">
-                        <div
-                          className="h-full bg-gradient-to-r from-[#2563EB] to-[#38BDF8] rounded-full transition-all duration-500"
-                          style={{ width: `${percent}%` }}
-                        />
-                      </div>
-                      <div className="flex items-center justify-between text-xs font-mono text-[#64748B]">
-                        <span className="font-semibold text-[#2563EB]">{percent}% Funded</span>
-                        <span>${crisis.disbursedUSD.toLocaleString()} Disbursed</span>
-                      </div>
-                    </div>
-
-                    {/* Multi-Chain Vaults */}
-                    <div className="grid grid-cols-2 gap-2 text-xs font-mono pt-3 border-t border-[#F1F5F9]">
-                      <div className="p-2.5 rounded-xl bg-[#F8FAFC] border border-[#E2E8F0]">
-                        <div className="text-[10px] text-[#64748B]">Sepolia Vault:</div>
-                        <div className="text-[#0F172A] font-bold truncate mt-0.5">{crisis.vaultAddresses.sepolia}</div>
-                      </div>
-                      <div className="p-2.5 rounded-xl bg-[#F8FAFC] border border-[#E2E8F0]">
-                        <div className="text-[10px] text-[#64748B]">Amoy Vault:</div>
-                        <div className="text-[#0F172A] font-bold truncate mt-0.5">{crisis.vaultAddresses.amoy}</div>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Card Action Buttons */}
-                  <div className="grid grid-cols-2 gap-2.5 pt-5 mt-2">
-                    <Link
-                      href={`/crisis/${crisis.id}`}
-                      className="py-2.5 px-4 rounded-full bg-[#2563EB] hover:bg-[#1D4ED8] text-white text-xs font-semibold text-center flex items-center justify-center gap-1.5 shadow-sm transition-all"
-                    >
-                      <HeartHandshake className="w-3.5 h-3.5" />
-                      <span>Open Vault</span>
-                    </Link>
-                    <Link
-                      href="/audit"
-                      className="py-2.5 px-4 rounded-full bg-white hover:bg-[#F8FAFC] text-[#0F172A] text-xs font-semibold border border-[#E2E8F0] text-center flex items-center justify-center gap-1 shadow-sm transition-all"
-                    >
-                      <span>Audit Flow</span>
-                      <ArrowRight className="w-3 h-3 text-[#64748B]" />
-                    </Link>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-
-        </div>
-      </section>
-
-      {/* ────────────────────────────────────────────────────────────────────────
-          6. AI ORACLE & LIVE PROTOCOL STREAM (Split Section)
-          ──────────────────────────────────────────────────────────────────────── */}
-      <section className="py-20 px-4 md:px-8 bg-white border-t border-[#E2E8F0]">
-        <div className="max-w-[1240px] mx-auto grid grid-cols-1 lg:grid-cols-3 gap-8">
-          
-          {/* Gemini AI Severity Engine Card */}
-          <div className="p-6 sm:p-8 rounded-2xl bg-[#F8FAFC] border border-[#E2E8F0] shadow-sm flex flex-col justify-between space-y-6">
-            <div className="space-y-4">
-              <div className="flex items-center justify-between pb-4 border-b border-[#E2E8F0]">
-                <div className="flex items-center gap-2.5">
-                  <div className="w-8 h-8 rounded-lg bg-blue-50 border border-blue-100 flex items-center justify-center text-[#2563EB]">
-                    <Cpu className="w-4 h-4" />
-                  </div>
-                  <span className="text-xs font-bold uppercase tracking-wider text-[#0F172A]">
-                    Gemini 2.5 Flash Oracle
-                  </span>
-                </div>
-                <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-emerald-50 text-[#16A34A] border border-emerald-200">
-                  ACTIVE
-                </span>
-              </div>
-
-              <p className="text-xs sm:text-sm text-[#475569] leading-relaxed">
-                Real-time seismic Richter telemetry is continuously ingested. Automated smart contract release activates when severity &ge; 7.0.
-              </p>
-
-              <div className="space-y-2.5 text-xs font-mono pt-1">
-                <div className="p-3.5 rounded-xl bg-white border border-[#E2E8F0] flex items-center justify-between">
-                  <span className="text-[#475569]">Seismic Severity:</span>
-                  <span className="text-rose-600 font-bold">9.4 / 10 (Critical)</span>
-                </div>
-                <div className="p-3.5 rounded-xl bg-white border border-[#E2E8F0] flex items-center justify-between">
-                  <span className="text-[#475569]">Contingency Release:</span>
-                  <span className="text-[#16A34A] font-bold">20% Unlocked</span>
-                </div>
-              </div>
             </div>
 
             <Link
-              href="/oracle"
-              className="w-full py-3 px-4 rounded-full bg-white hover:bg-[#F8FAFC] text-[#0F172A] hover:text-[#2563EB] text-xs font-semibold border border-[#E2E8F0] hover:border-blue-300 shadow-sm flex items-center justify-center gap-2 transition-all"
+              href="/crisis"
+              className="inline-flex items-center gap-1 text-xs font-semibold text-[#2563EB] hover:text-[#1D4ED8] transition-colors self-start sm:self-auto"
             >
-              <span>Test AI Oracle Simulator</span>
+              <span>View Full Crisis Feed</span>
               <ArrowRight className="w-3.5 h-3.5" />
             </Link>
           </div>
 
-          {/* Live Protocol Stream (2 Cols) */}
-          <div className="lg:col-span-2 p-6 sm:p-8 rounded-2xl bg-[#F8FAFC] border border-[#E2E8F0] shadow-sm flex flex-col justify-between space-y-6">
-            <div className="space-y-4">
-              <div className="flex items-center justify-between pb-4 border-b border-[#E2E8F0]">
-                <div className="flex items-center gap-2.5">
-                  <div className="w-8 h-8 rounded-lg bg-blue-50 border border-blue-100 flex items-center justify-center text-[#2563EB]">
-                    <Activity className="w-4 h-4" />
+          {/* Compact 3-Card Minimal Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {[
+              {
+                id: "mexico-quake",
+                title: "M 4.5 Puerto Madero Quake",
+                location: "Chiapas, Mexico",
+                source: "USGS Station MEX-08",
+                raised: "$125,000",
+                status: "CRITICAL",
+                statusColor: "bg-rose-50 text-rose-700 border-rose-200",
+                ngo: "Mexican Red Cross (Cruz Roja)",
+                time: "Live USGS",
+              },
+              {
+                id: "japan-quake",
+                title: "M 5.2 Honshu Offshore Tectonic",
+                location: "Honshu, Japan",
+                source: "JMA Seismograph Station",
+                raised: "$340,000",
+                status: "ACTIVE",
+                statusColor: "bg-blue-50 text-blue-700 border-blue-200",
+                ngo: "Japanese Red Cross Society",
+                time: "Live JMA",
+              },
+              {
+                id: "california-quake",
+                title: "M 4.1 Southern California Tremor",
+                location: "Imperial, California",
+                source: "USGS Station CI-114",
+                raised: "$210,000",
+                status: "ELEVATED",
+                statusColor: "bg-amber-50 text-amber-700 border-amber-200",
+                ngo: "American Red Cross Disaster Ops",
+                time: "Live USGS",
+              },
+            ].map((vault) => (
+              <div
+                key={vault.id}
+                className="p-5 rounded-2xl bg-white border border-[#E2E8F0] shadow-xs hover:border-[#CBD5E1] transition-all space-y-4 flex flex-col justify-between"
+              >
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase border ${vault.statusColor}`}>
+                      {vault.status}
+                    </span>
+                    <span className="text-[11px] font-medium text-[#64748B]">
+                      {vault.time}
+                    </span>
                   </div>
-                  <span className="text-xs font-bold uppercase tracking-wider text-[#0F172A]">
-                    Live On-Chain Stream
-                  </span>
+
+                  <div>
+                    <h3 className="text-base font-bold text-[#0F172A] leading-snug">
+                      {vault.title}
+                    </h3>
+                    <div className="text-xs text-[#64748B] flex items-center gap-1 mt-1">
+                      <MapPin className="w-3 h-3 text-[#94A3B8]" />
+                      <span>{vault.location}</span>
+                    </div>
+                  </div>
+
+                  <div className="p-3 rounded-xl bg-[#F8FAFC] border border-[#F1F5F9] text-xs space-y-1">
+                    <div className="text-[11px] text-[#94A3B8]">Deploying NGO:</div>
+                    <div className="text-[#0F172A] font-semibold">{vault.ngo}</div>
+                  </div>
                 </div>
-                <span className="text-xs font-mono text-[#64748B] flex items-center gap-1.5">
-                  <span className="w-1.5 h-1.5 rounded-full bg-[#16A34A] animate-pulse"></span>
-                  Real-Time WebSocket
-                </span>
-              </div>
 
-              <div className="space-y-2.5 font-mono text-xs">
-                {liveTransactions.map((tx, i) => (
-                  <div
-                    key={i}
-                    className="flex flex-col sm:flex-row sm:items-center justify-between p-3.5 rounded-xl bg-white border border-[#E2E8F0] hover:border-blue-200 transition-colors gap-2"
-                  >
-                    <div className="flex items-center gap-2.5">
-                      <span className="px-2 py-0.5 rounded-md text-[10px] bg-[#F8FAFC] border border-[#E2E8F0] text-[#0F172A] font-bold shadow-xs">
-                        {tx.chainBadge}
-                      </span>
-                      <span className="text-[#475569]">{tx.hash}</span>
-                      <span className="text-[#CBD5E1]">&bull;</span>
-                      <span className="text-[#0F172A] font-semibold">{tx.type}</span>
-                    </div>
-
-                    <div className="flex items-center justify-between sm:justify-end gap-3 text-xs">
-                      <span className="text-[#2563EB] font-bold">{tx.amount}</span>
-                      <span className="text-[#475569]">{tx.target}</span>
-                      <span className="text-[#94A3B8] text-[11px]">{tx.time}</span>
-                    </div>
+                <div className="pt-3 border-t border-[#F1F5F9] flex items-center justify-between gap-2">
+                  <div>
+                    <span className="text-[10px] text-[#94A3B8] uppercase block">Emergency Pool</span>
+                    <span className="text-sm font-bold text-[#0F172A]">{vault.raised} USDC</span>
                   </div>
-                ))}
-              </div>
-            </div>
 
-            <div className="flex items-center justify-between text-xs text-[#475569] pt-4 border-t border-[#E2E8F0]">
-              <span>Verifiable on PolygonScan & Sepolia Etherscan.</span>
-              <Link href="/audit" className="text-[#2563EB] hover:underline font-semibold flex items-center gap-1">
-                <span>Full Audit Flow</span>
-                <ArrowRight className="w-3.5 h-3.5" />
-              </Link>
-            </div>
+                  <Link
+                    href="/crisis"
+                    className="px-4 py-2 rounded-xl bg-[#2563EB] hover:bg-[#1D4ED8] text-white text-xs font-semibold shadow-2xs transition-colors flex items-center gap-1"
+                  >
+                    <span>Donate Aid</span>
+                    <ArrowRight className="w-3 h-3" />
+                  </Link>
+                </div>
+              </div>
+            ))}
           </div>
 
         </div>
       </section>
+
+
 
       {/* ────────────────────────────────────────────────────────────────────────
           7. CALL TO ACTION SECTION (High-Impact & Heartwarming)
@@ -916,16 +685,18 @@ export default function CommandCenterHome() {
 
             <div className="flex flex-wrap items-center justify-center gap-3.5 pt-2">
               <Link
-                href="/crisis/turkey-earthquake-2026"
-                className="px-8 py-3.5 rounded-full bg-[#2563EB] hover:bg-[#1D4ED8] active:bg-[#1E40AF] text-white text-sm font-bold shadow-[0_4px_14px_rgba(37,99,235,0.25)] hover:-translate-y-0.5 transition-all"
+                href="/crisis"
+                className="px-8 py-3.5 rounded-full bg-[#2563EB] hover:bg-[#1D4ED8] active:bg-[#1E40AF] text-white text-sm font-bold flex items-center gap-2 shadow-[0_4px_14px_rgba(37,99,235,0.25)] hover:-translate-y-0.5 transition-all"
               >
-                Donate Direct Relief
+                <Heart className="w-4 h-4 fill-white" />
+                <span>Donate Relief</span>
               </Link>
               <Link
-                href="/audit"
-                className="px-8 py-3.5 rounded-full bg-white hover:bg-[#F8FAFC] text-[#0F172A] text-sm font-semibold border border-[#CBD5E1] shadow-sm hover:-translate-y-0.5 transition-all"
+                href="/beneficiary"
+                className="px-8 py-3.5 rounded-full bg-white hover:bg-[#F8FAFC] text-[#0F172A] text-sm font-semibold border border-[#CBD5E1] shadow-sm flex items-center gap-2 hover:-translate-y-0.5 transition-all"
               >
-                Explore Public Audit Ledger
+                <ShieldCheck className="w-4 h-4 text-[#2563EB]" />
+                <span>Claim Aid</span>
               </Link>
             </div>
 

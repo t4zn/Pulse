@@ -249,6 +249,50 @@ export function saveBeneficiaryClaim(claimData: {
   return newEvent;
 }
 
+export function saveDonationRecord(donationData: {
+  txHash: string;
+  donorAddress?: string;
+  amountUSD: number;
+  amountCrypto: string;
+  networkName: "Ethereum Sepolia" | "Polygon Amoy";
+  poolName: string;
+  ipfsReceipt: string;
+}): AuditEvent {
+  const newEvent: AuditEvent = {
+    id: `live-donation-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+    network: donationData.networkName.includes("Ethereum") ? "sepolia" : "amoy",
+    networkName: donationData.networkName,
+    chainId: donationData.networkName.includes("Ethereum") ? 11155111 : 80002,
+    blockNumber: 8421950 + Math.floor(Math.random() * 50),
+    eventType: "donation",
+    eventName: "DonationReceived",
+    txHash: donationData.txHash,
+    fromAddress: donationData.donorAddress || "0x7F23190bA8812c45e89d1234567890abcdefB39a",
+    toAddress: NETWORKS.amoy.contracts.vault,
+    amountUSD: donationData.amountUSD,
+    amountCrypto: donationData.amountCrypto,
+    timestamp: new Date().toISOString(),
+    timeAgo: "Just now",
+    ipfsCid: donationData.ipfsReceipt,
+    category: "Emergency Shelter",
+    gasUsed: 21000,
+    gasPriceGwei: 24.0,
+    isLiveEvent: true,
+  };
+
+  if (typeof window !== "undefined") {
+    const existing = getStoredAuditEvents();
+    const updated = [newEvent, ...existing];
+    localStorage.setItem(STORAGE_EVENTS_KEY, JSON.stringify(updated));
+    
+    window.dispatchEvent(new CustomEvent(SYNC_EVENT_NAME, {
+      detail: { type: "DONATION_ADDED", event: newEvent }
+    }));
+  }
+
+  return newEvent;
+}
+
 export function getStoredCommittedRoots(): CommittedRootRecord[] {
   if (typeof window === "undefined") return [];
   try {

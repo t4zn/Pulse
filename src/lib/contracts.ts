@@ -101,7 +101,8 @@ export function getExplorerAddressUrl(chain: "sepolia" | "amoy" | string, addres
 
 export function getIpfsGatewayUrl(cid: string): string {
   const cleanCid = cid.replace("ipfs://", "");
-  return `https://ipfs.io/ipfs/${cleanCid}`;
+  const base = process.env.NEXT_PUBLIC_PINATA_GATEWAY || "https://tomato-rational-swallow-149.mypinata.cloud/ipfs/";
+  return `${base}${cleanCid}`;
 }
 
 export function formatAddress(address: string, startChars = 6, endChars = 4): string {

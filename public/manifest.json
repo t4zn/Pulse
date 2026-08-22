@@ -1,0 +1,21 @@
+{
+  "name": "Pulse Protocol",
+  "short_name": "Pulse",
+  "description": "Decentralized Cross-Chain Emergency Aid Protocol",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#FFFFFF",
+  "theme_color": "#2563EB",
+  "icons": [
+    {
+      "src": "/ico.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/ico.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}

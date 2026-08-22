@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
+import Link from "next/link";
 import {
   X,
   ExternalLink,
@@ -265,13 +266,23 @@ export function IPFSDeliveryModal({
 
         {/* Footer Actions */}
         <div className="p-4 bg-[#F8FAFC] border-t border-[#E2E8F0] flex flex-wrap items-center justify-between gap-3">
-          <button
-            onClick={handleDownloadProof}
-            className="px-4 py-2 rounded-full bg-white border border-[#E2E8F0] hover:bg-[#F1F5F9] text-[#0F172A] text-xs font-semibold flex items-center gap-1.5 transition-colors shadow-2xs"
-          >
-            <Download className="w-3.5 h-3.5 text-[#2563EB]" />
-            <span>Download Proof JSON</span>
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={handleDownloadProof}
+              className="px-4 py-2 rounded-full bg-white border border-[#E2E8F0] hover:bg-[#F1F5F9] text-[#0F172A] text-xs font-semibold flex items-center gap-1.5 transition-colors shadow-2xs"
+            >
+              <Download className="w-3.5 h-3.5 text-[#2563EB]" />
+              <span>Download Proof JSON</span>
+            </button>
+
+            <Link
+              href={`/receipt?cid=${encodeURIComponent(cid)}`}
+              className="px-4 py-2 rounded-full bg-blue-50 border border-blue-200 hover:bg-blue-100 text-[#2563EB] text-xs font-semibold flex items-center gap-1.5 transition-colors shadow-2xs"
+            >
+              <FileCheck className="w-3.5 h-3.5" />
+              <span>On-Site Certificate</span>
+            </Link>
+          </div>
 
           <div className="flex items-center gap-2">
             <a
@@ -280,13 +291,13 @@ export function IPFSDeliveryModal({
               rel="noopener noreferrer"
               className="px-4 py-2 rounded-full bg-[#2563EB] hover:bg-blue-600 text-white text-xs font-semibold flex items-center gap-1.5 transition-colors shadow-xs"
             >
-              <span>View in IPFS Gateway</span>
+              <span>Raw IPFS</span>
               <ExternalLink className="w-3.5 h-3.5" />
             </a>
 
             <button
               onClick={onClose}
-              className="px-5 py-2 rounded-full bg-[#0F172A] hover:bg-slate-800 text-white text-xs font-semibold transition-colors"
+              className="px-5 py-2 rounded-full bg-[#0F172A] hover:bg-slate-800 text-white text-xs font-semibold transition-colors cursor-pointer"
             >
               Close
             </button>
