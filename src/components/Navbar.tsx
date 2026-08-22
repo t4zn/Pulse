@@ -4,17 +4,22 @@ import React, { useState, useRef, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { 
-  Zap,
-  Copy,
-  Check,
-  LogOut,
-  ChevronDown,
-  ArrowUpRight,
-  ExternalLink,
-  Menu,
+  Zap, 
+  Copy, 
+  Check, 
+  LogOut, 
+  ChevronDown, 
+  ArrowUpRight, 
+  ExternalLink, 
+  Menu, 
   X,
   Wallet,
-  Globe
+  Globe,
+  Home,
+  Flame,
+  ShieldCheck,
+  Search,
+  Cpu
 } from "lucide-react";
 import { getExplorerAddressUrl } from "@/lib/contracts";
 import { useWallet } from "@/context/WalletContext";
@@ -39,10 +44,11 @@ export function Navbar() {
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   const navLinks = [
-    { name: "Crises", href: "/crisis/turkey-earthquake-2026" },
-    { name: "Claims", href: "/beneficiary" },
-    { name: "Audit", href: "/audit" },
-    { name: "Oracle", href: "/oracle" },
+    { name: "Home", href: "/", icon: Home },
+    { name: "Crisis", href: "/crisis/turkey-earthquake-2026", icon: Flame },
+    { name: "Claims", href: "/beneficiary", icon: ShieldCheck },
+    { name: "Audit", href: "/audit", icon: Search },
+    { name: "Oracle", href: "/oracle", icon: Cpu },
   ];
 
   // Close dropdown when clicking outside
@@ -73,55 +79,60 @@ export function Navbar() {
   const tokenSymbol = isAmoy ? "POL" : "ETH";
 
   return (
-    <header className="sticky top-0 z-50 w-full bg-white/90 backdrop-blur-xl border-b border-hairline/80 transition-all shadow-[0_1px_2px_rgba(0,0,0,0.02)]">
-      <div className="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between relative">
+    <header className="sticky top-0 z-50 w-full bg-white/95 backdrop-blur-xl border-b border-hairline transition-all shadow-[0_1px_3px_rgba(0,0,0,0.03)] font-['Plus_Jakarta_Sans',sans-serif]">
+      <div className="w-full px-6 sm:px-10 lg:px-14 h-16 flex items-center justify-between relative">
         
         {/* Left: Brand Identity */}
-        <div className="flex items-center gap-2.5 shrink-0">
+        <div className="flex items-center gap-3 shrink-0">
           <Link href="/" className="flex items-center gap-2.5 group">
             <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-primary to-blue-700 flex items-center justify-center text-white transition-all shadow-xs group-hover:scale-105">
               <Zap className="w-4 h-4 fill-white" />
             </div>
-            <span className="font-semibold text-base tracking-tight text-ink">
+            <span className="font-['Space_Grotesk',sans-serif] font-bold text-xl tracking-tight text-ink">
               PULSE
             </span>
           </Link>
         </div>
 
-        {/* Center: Desktop Navigation Links Centered in Middle (No Pill Box Selection) */}
-        <nav className="hidden md:flex items-center gap-6 absolute left-1/2 -translate-x-1/2">
+        {/* Center: Desktop Navigation Links Centered with icons & balanced distance */}
+        <nav className="hidden md:flex items-center gap-7 lg:gap-10 absolute left-1/2 -translate-x-1/2">
           {navLinks.map((link) => {
+            const Icon = link.icon;
             const isActive = pathname === link.href || (link.href !== "/" && pathname.startsWith(link.href));
             return (
               <Link
                 key={link.href}
                 href={link.href}
-                className={`text-sm font-medium whitespace-nowrap transition-colors py-1 ${
+                className={`flex items-center gap-1.5 text-[15px] tracking-[-0.01em] font-semibold whitespace-nowrap transition-colors py-1.5 px-1 relative group ${
                   isActive
-                    ? "text-ink font-semibold"
+                    ? "text-ink font-bold"
                     : "text-body hover:text-ink"
                 }`}
               >
-                {link.name}
+                <Icon className={`w-4 h-4 transition-colors ${isActive ? "text-primary" : "text-muted group-hover:text-primary"}`} />
+                <span>{link.name}</span>
+                {isActive && (
+                  <span className="absolute -bottom-1 left-0 right-0 h-[2px] bg-primary rounded-full" />
+                )}
               </Link>
             );
           })}
         </nav>
 
         {/* Right: Wallet Profile Button & Dropdown */}
-        <div className="flex items-center gap-2 shrink-0">
+        <div className="flex items-center gap-2.5 shrink-0">
           <div className="relative" ref={dropdownRef}>
             {isConnected ? (
               <button
                 onClick={() => setWalletDropdownOpen(!walletDropdownOpen)}
-                className="flex items-center gap-2 px-3.5 py-2 rounded-lg bg-white hover:bg-surface-soft text-ink text-xs font-medium border border-hairline transition-all shadow-xs group whitespace-nowrap"
+                className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white hover:bg-surface-soft text-ink text-xs font-semibold border border-hairline transition-all shadow-xs group whitespace-nowrap"
               >
                 <span className={`w-2 h-2 rounded-full ${isAmoy ? "bg-primary" : "bg-semantic-up"} animate-pulse shrink-0`}></span>
-                <span className="font-mono text-muted text-xs">{chainLabel}</span>
+                <span className="font-mono text-muted text-[11px] font-medium">{chainLabel}</span>
                 <span className="text-hairline">/</span>
-                <span className="font-mono text-ink font-semibold text-xs">{balance} {tokenSymbol}</span>
+                <span className="font-mono text-ink font-bold text-[11px]">{balance} {tokenSymbol}</span>
                 <span className="text-hairline">/</span>
-                <span className="font-mono text-body text-xs">{shortAddress}</span>
+                <span className="font-mono text-body text-[11px]">{shortAddress}</span>
                 <ChevronDown className={`w-3.5 h-3.5 text-muted group-hover:text-ink transition-transform ${walletDropdownOpen ? "rotate-180" : ""}`} />
               </button>
             ) : (
@@ -133,7 +144,7 @@ export function Navbar() {
                   connectWallet();
                 }}
                 disabled={isConnecting}
-                className="flex items-center gap-2 px-4 py-2 rounded-lg bg-primary hover:bg-primary-hover active:bg-primary-active text-white text-xs font-semibold transition-all shadow-sm disabled:opacity-50 whitespace-nowrap cursor-pointer"
+                className="flex items-center gap-2 px-4 py-2 rounded-xl bg-primary hover:bg-primary-hover active:bg-primary-active text-white text-xs font-bold tracking-tight transition-all shadow-sm hover:shadow-md hover:shadow-primary/20 disabled:opacity-50 whitespace-nowrap cursor-pointer hover:-translate-y-0.5"
               >
                 <Wallet className="w-3.5 h-3.5" />
                 <span>{isConnecting ? "Connecting..." : "Connect Wallet"}</span>
@@ -241,19 +252,23 @@ export function Navbar() {
       {mobileMenuOpen && (
         <div className="md:hidden px-4 py-3 border-b border-hairline bg-white flex flex-col gap-1">
           {navLinks.map((link) => {
+            const Icon = link.icon;
             const isActive = pathname === link.href || (link.href !== "/" && pathname.startsWith(link.href));
             return (
               <Link
                 key={link.href}
                 href={link.href}
                 onClick={() => setMobileMenuOpen(false)}
-                className={`flex items-center justify-between px-3 py-2 rounded-lg text-sm font-medium ${
+                className={`flex items-center justify-between px-3.5 py-2.5 rounded-xl text-sm font-semibold transition-colors ${
                   isActive 
-                    ? "text-ink font-semibold" 
-                    : "text-body hover:text-ink"
+                    ? "bg-primary/10 text-primary font-bold" 
+                    : "text-body hover:text-ink hover:bg-surface-soft"
                 }`}
               >
-                <span>{link.name}</span>
+                <div className="flex items-center gap-3">
+                  <Icon className="w-4 h-4" />
+                  <span>{link.name}</span>
+                </div>
                 <ExternalLink className="w-3.5 h-3.5 text-muted" />
               </Link>
             );
