@@ -227,7 +227,7 @@ export function SankeyFlowDiagram({ onOpenIpfs }: SankeyFlowDiagramProps) {
             </div>
 
             <div className="text-[10px] text-slate-400 leading-snug pt-1">
-              Triggered autonomously by Google Gemini 2.5 Flash Oracle when Richter $\ge$ 7.0.
+              Triggered autonomously by real-time USGS/EMSC seismic telemetry when Richter $\ge$ 7.0.
             </div>
           </div>
         </div>

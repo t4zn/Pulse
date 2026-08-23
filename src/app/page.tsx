@@ -364,7 +364,7 @@ export default function CommandCenterHome() {
     },
     {
       step: "02",
-      title: "Gemini AI Sensor Trigger",
+      title: "Autonomous Sensor Trigger",
       desc: "When earthquake or flood sensors breach critical thresholds, smart contracts unlock instant emergency liquidity.",
       icon: Cpu,
     },
@@ -416,7 +416,7 @@ export default function CommandCenterHome() {
               </span>
             </h1>
             <p className="text-base sm:text-lg text-[#475569] max-w-2xl mx-auto leading-relaxed font-normal">
-              Autonomous emergency vaults triggered by Gemini AI telemetry. Delivering zero-fee, privacy-protected emergency liquidity directly into the hands of families displaced by disaster.
+              Autonomous emergency vaults triggered by real-time sensor telemetry. Delivering zero-fee, privacy-protected emergency liquidity directly into the hands of families displaced by disaster.
             </p>
           </div>
 
@@ -509,13 +509,13 @@ export default function CommandCenterHome() {
 
                   <div className="p-5 rounded-2xl bg-[#F8FAFC] border border-[#E2E8F0] hover:border-blue-200 transition-colors">
                     <div className="text-[11px] font-bold text-[#64748B] uppercase tracking-wider mb-1">
-                      AI Triggers Active
+                      Sensor Triggers Active
                     </div>
                     <div className="text-2xl sm:text-3xl font-extrabold text-[#16A34A] tracking-tight">
                       3 / 3 Vaults
                     </div>
                     <div className="text-xs text-[#64748B] font-medium mt-1">
-                      Gemini 2.5 Flash Oracle
+                      Real-Time USGS / EMSC Ingestion
                     </div>
                   </div>
                 </div>
