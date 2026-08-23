@@ -1,8 +1,7 @@
 "use client";
 
-export const dynamic = "force-dynamic";
-
 import React, { useState, useEffect } from "react";
+import dynamic from "next/dynamic";
 import Link from "next/link";
 import {
   ShieldCheck,
@@ -23,11 +22,27 @@ import {
   FileCheck,
   Wallet,
   Lock,
+  MapPin,
+  Activity,
+  Compass,
 } from "lucide-react";
 import { uploadReceiptToFilecoin, getFilecoinGatewayUrl } from "@/lib/filecoin";
 import { saveDonationRecord, saveBeneficiaryClaim } from "@/lib/auditState";
 import { useWallet } from "@/context/WalletContext";
 import { buildMerkleTree, generateProof, buildEIP712ClaimData } from "@/lib/merkle";
+
+// Dynamically import Leaflet Map to ensure SSR compatibility
+const PostLeafletMap = dynamic(() => import("@/components/PostLeafletMap"), {
+  ssr: false,
+  loading: () => (
+    <div className="h-[280px] sm:h-[340px] rounded-2xl bg-slate-50 flex items-center justify-center border border-slate-200">
+      <div className="flex items-center gap-2 text-xs text-slate-500 font-semibold">
+        <Loader2 className="w-4 h-4 animate-spin text-blue-600" />
+        <span>Initializing Regional Seismology Map...</span>
+      </div>
+    </div>
+  ),
+});
 
 // Branded Blockchain Network SVG Icons
 function EthereumIcon({ className = "w-3.5 h-3.5" }: { className?: string }) {
@@ -76,13 +91,82 @@ interface RealCrisisPost {
   timestamp: number;
   rawMagnitude: number;
   regionKey: string;
+  place: string;
   headlineTitle: string;
   magnitude: string;
   severityLevel: "CRITICAL" | "HIGH" | "ELEVATED";
   depth: string;
+  depthKm: number;
   significance: string;
   officialUrl: string;
   fullDescription: string[];
+  coordinates: {
+    lat: number;
+    lng: number;
+  };
+  intensity: {
+    mmi: number;
+    level: string;
+    color: string;
+    shakeRadiusKm: number;
+    severeRadiusKm: number;
+  };
+}
+
+function computeDisasterIntensity(
+  magnitude: number,
+  depthKm: number,
+  source: "USGS" | "EMSC" | "NASA",
+  reportedMmi?: number
+) {
+  if (source === "NASA") {
+    return {
+      mmi: 6.0,
+      level: "Active Thermal Alert",
+      color: "#EA580C",
+      shakeRadiusKm: 35,
+      severeRadiusKm: 12,
+    };
+  }
+
+  // Calculate MMI (Modified Mercalli Intensity)
+  let mmi = reportedMmi;
+  if (!mmi || isNaN(mmi) || mmi <= 0) {
+    if (magnitude >= 7.5) mmi = 9.0;
+    else if (magnitude >= 7.0) mmi = 8.2;
+    else if (magnitude >= 6.5) mmi = 7.4;
+    else if (magnitude >= 6.0) mmi = 6.8;
+    else if (magnitude >= 5.5) mmi = 5.9;
+    else if (magnitude >= 5.0) mmi = 5.1;
+    else mmi = 4.3;
+  }
+
+  // Attenuation adjustment based on focal depth
+  const depthFactor = depthKm < 15 ? 1.25 : depthKm < 40 ? 1.0 : depthKm < 100 ? 0.75 : 0.55;
+  const shakeRadiusKm = Math.min(600, Math.max(25, Math.round(Math.pow(10, 0.42 * magnitude - 0.45) * depthFactor)));
+  const severeRadiusKm = Math.min(shakeRadiusKm * 0.4, Math.max(6, Math.round(shakeRadiusKm * (magnitude >= 6.5 ? 0.32 : 0.2))));
+
+  let level = "Light Shaking";
+  let color = "#2563EB";
+
+  if (mmi >= 8.0 || magnitude >= 7.0) {
+    level = "Violent / Severe Shaking";
+    color = "#E11D48";
+  } else if (mmi >= 6.5 || magnitude >= 6.0) {
+    level = "Strong Shaking";
+    color = "#EA580C";
+  } else if (mmi >= 5.0 || magnitude >= 5.0) {
+    level = "Moderate Shaking";
+    color = "#D97706";
+  }
+
+  return {
+    mmi,
+    level,
+    color,
+    shakeRadiusKm,
+    severeRadiusKm,
+  };
 }
 
 function resolveRegionalNGO(location: string): { name: string; logoSrc: string } {
@@ -168,6 +252,7 @@ export default function CrisisFeedPage() {
   const [posts, setPosts] = useState<RealCrisisPost[]>([]);
   const [loading, setLoading] = useState(true);
   const [expandedIds, setExpandedIds] = useState<Record<string, boolean>>({});
+  const [expandedMapIds, setExpandedMapIds] = useState<Record<string, boolean>>({});
   const [inlineDonateId, setInlineDonateId] = useState<string | null>(null);
   const [inlineClaimId, setInlineClaimId] = useState<string | null>(null);
   const [copiedId, setCopiedId] = useState<string | null>(null);
@@ -205,6 +290,13 @@ export default function CrisisFeedPage() {
 
   const toggleExpand = (id: string) => {
     setExpandedIds((prev) => ({
+      ...prev,
+      [id]: !prev[id],
+    }));
+  };
+
+  const toggleMapExpand = (id: string) => {
+    setExpandedMapIds((prev) => ({
       ...prev,
       [id]: !prev[id],
     }));
@@ -359,12 +451,14 @@ export default function CrisisFeedPage() {
               const mag = Number(f.properties?.mag || 5.0);
               const place = f.properties?.place || "Seismic Zone";
               const time = Number(f.properties?.time || Date.now());
-              const depthVal = f.geometry?.coordinates?.[2] || 10.0;
+              const depthVal = Number(f.geometry?.coordinates?.[2] || 10.0);
               const depth = `${depthVal.toFixed(1)} km`;
               const sig = f.properties?.sig ? `${f.properties.sig} / 1000` : `${Math.round(mag * 70)} / 1000`;
               const ngo = resolveRegionalNGO(place);
-              const lat = f.geometry?.coordinates?.[1]?.toFixed(3) || "0.000";
-              const lon = f.geometry?.coordinates?.[0]?.toFixed(3) || "0.000";
+              const lat = Number(f.geometry?.coordinates?.[1] || 0);
+              const lng = Number(f.geometry?.coordinates?.[0] || 0);
+              const reportedMmi = f.properties?.mmi ? Number(f.properties.mmi) : undefined;
+              const intensity = computeDisasterIntensity(mag, depthVal, "USGS", reportedMmi);
 
               realPosts.push({
                 id: f.id || `usgs-${time}`,
@@ -378,14 +472,18 @@ export default function CrisisFeedPage() {
                 timestamp: time,
                 rawMagnitude: mag,
                 regionKey: getRegionKey(place),
+                place,
                 headlineTitle: `A high-magnitude ${mag.toFixed(1)} tectonic rupture occurred in the ${place} region at a focal depth of ${depth}.`,
                 magnitude: `${mag.toFixed(1)} Mag`,
                 severityLevel: mag >= 6.0 ? "CRITICAL" : "HIGH",
                 depth,
+                depthKm: depthVal,
                 significance: sig,
                 officialUrl: f.properties?.url || "https://earthquake.usgs.gov/",
+                coordinates: { lat, lng },
+                intensity,
                 fullDescription: [
-                  `Official USGS seismic sensors recorded a Magnitude ${mag.toFixed(1)} earthquake at coordinates (${lat}°N, ${lon}°E) with a focal depth of ${depth}. Tectonic subduction along regional plate boundaries has produced significant crustal displacement.`,
+                  `Official USGS seismic sensors recorded a Magnitude ${mag.toFixed(1)} earthquake at coordinates (${lat.toFixed(3)}°N, ${lng.toFixed(3)}°E) with a focal depth of ${depth}. Tectonic subduction along regional plate boundaries has produced significant crustal displacement.`,
                   depthVal < 30
                     ? `Due to the shallow focal depth (${depth}), high-frequency ground acceleration is concentrated near the epicenter, significantly amplifying the risk of masonry collapse, slope failure along unpaved access routes, and municipal power disruption.`
                     : `The intermediate depth helped disperse the epicenter shockwaves across provincial monitoring arrays, though ground shaking was widely felt across surrounding populated settlements.`,
@@ -411,9 +509,12 @@ export default function CrisisFeedPage() {
               const mag = Number(p?.mag || 4.5);
               const region = p?.flynn_region || "Euro-Mediterranean Region";
               const time = p?.time ? new Date(p.time).getTime() : Date.now();
-              const depthVal = p?.depth ? Number(p.depth) : 15.0;
+              const depthVal = Number(p?.depth || f.geometry?.coordinates?.[2] || 15.0);
               const depth = `${depthVal.toFixed(1)} km`;
               const ngo = resolveRegionalNGO(region);
+              const lat = Number(f.geometry?.coordinates?.[1] || (p?.lat ? Number(p.lat) : 0));
+              const lng = Number(f.geometry?.coordinates?.[0] || (p?.lon ? Number(p.lon) : 0));
+              const intensity = computeDisasterIntensity(mag, depthVal, "EMSC");
 
               realPosts.push({
                 id: f.id || `emsc-${time}`,
@@ -427,12 +528,16 @@ export default function CrisisFeedPage() {
                 timestamp: time,
                 rawMagnitude: mag,
                 regionKey: getRegionKey(region),
+                place: region,
                 headlineTitle: `A severe ${mag.toFixed(1)} magnitude earthquake struck the ${region} sector at a focal depth of ${depth}.`,
                 magnitude: `${mag.toFixed(1)} Mag`,
                 severityLevel: mag >= 6.0 ? "CRITICAL" : "HIGH",
                 depth,
+                depthKm: depthVal,
                 significance: `Score ${Math.round(mag * 80)}`,
                 officialUrl: `https://www.emsc-csem.org/Earthquake/earthquake.php?id=${p?.unid || ""}`,
+                coordinates: { lat, lng },
+                intensity,
                 fullDescription: [
                   `European-Mediterranean Seismological Centre (EMSC) arrays registered a Magnitude ${mag.toFixed(1)} earthquake centered in ${region} at a depth of ${depth}. Seismic waves triggered multi-sensor telemetry alerts across regional network observatories.`,
                   `Local emergency authorities report notable ground tremors across nearby coastal and residential zones, raising concerns for older unreinforced infrastructure and localized utility interruptions.`,
@@ -459,6 +564,10 @@ export default function CrisisFeedPage() {
               const time = dateStr ? new Date(dateStr).getTime() : Date.now();
               const categoryTitle = ev.categories?.[0]?.title || "Wildfire Emergency";
               const ngo = resolveRegionalNGO(ev.title);
+              const coords = geo?.coordinates || ev.geometry?.[0]?.coordinates;
+              const lat = Array.isArray(coords) ? (typeof coords[1] === "number" ? coords[1] : Number(coords[1]) || 0) : 0;
+              const lng = Array.isArray(coords) ? (typeof coords[0] === "number" ? coords[0] : Number(coords[0]) || 0) : 0;
+              const intensity = computeDisasterIntensity(5.5, 0, "NASA");
 
               realPosts.push({
                 id: ev.id,
@@ -472,12 +581,16 @@ export default function CrisisFeedPage() {
                 timestamp: time,
                 rawMagnitude: 5.5,
                 regionKey: ev.title.toLowerCase().trim(),
+                place: ev.title,
                 headlineTitle: `NASA Earth Observatory detected active ${categoryTitle} telemetry across ${ev.title}.`,
                 magnitude: categoryTitle,
                 severityLevel: "HIGH",
                 depth: "Surface Event",
+                depthKm: 0,
                 significance: "Satellite Verified",
                 officialUrl: ev.link || "https://eonet.gsfc.nasa.gov/",
+                coordinates: { lat, lng },
+                intensity,
                 fullDescription: [
                   `NASA Earth Observing System satellites captured high-resolution thermal imaging and ground telemetry corresponding to active ${categoryTitle.toLowerCase()} across ${ev.title}.`,
                   `Atmospheric telemetry indicates significant localized displacement risk, hazardous particulate dispersion, and disruption to local supply corridors.`,
@@ -558,6 +671,7 @@ export default function CrisisFeedPage() {
         ) : (
           posts.map((post) => {
             const isExpanded = expandedIds[post.id];
+            const isMapExpanded = expandedMapIds[post.id];
             const isDonating = inlineDonateId === post.id;
             const isClaiming = inlineClaimId === post.id;
             const isDonated = donationSuccessId === post.id;
@@ -620,7 +734,78 @@ export default function CrisisFeedPage() {
                         {post.fullDescription[0]}
                       </p>
                     )}
+                    <button
+                      type="button"
+                      onClick={() => toggleExpand(post.id)}
+                      className="text-[11px] font-semibold text-[#2563EB] hover:underline flex items-center gap-0.5 pt-0.5 cursor-pointer"
+                    >
+                      <span>{isExpanded ? "Show Less" : "Read Full Telemetry"}</span>
+                      <ChevronDown className={`w-3 h-3 transition-transform duration-200 ${isExpanded ? "rotate-180" : ""}`} />
+                    </button>
                   </div>
+                </div>
+
+                {/* ── Regional Seismology & Intensity Leaflet Map Expander ── */}
+                <div className="space-y-2 pt-0.5">
+                  <button
+                    type="button"
+                    onClick={() => toggleMapExpand(post.id)}
+                    className={`w-full py-2 px-3 rounded-xl border flex items-center justify-between transition-all cursor-pointer text-xs ${
+                      isMapExpanded
+                        ? "bg-[#F1F5F9] border-[#CBD5E1] text-[#0F172A]"
+                        : "bg-[#F8FAFC] hover:bg-[#F1F5F9] border-[#E2E8F0] text-[#475569] hover:text-[#0F172A]"
+                    }`}
+                  >
+                    <div className="flex items-center gap-2 min-w-0">
+                      <div className={`p-1 rounded-lg ${isMapExpanded ? "bg-[#2563EB] text-white" : "bg-white text-[#2563EB] border border-[#E2E8F0]"}`}>
+                        <MapPin className="w-3.5 h-3.5 shrink-0" />
+                      </div>
+                      <div className="flex items-center gap-1.5 truncate">
+                        <span className="font-semibold text-xs truncate">
+                          {isMapExpanded ? "Regional Epicenter & Intensity Map" : "View Region & Intensity Map"}
+                        </span>
+                        <span className="text-[11px] text-[#94A3B8] hidden sm:inline truncate">
+                          &bull; {post.place} ({post.coordinates.lat.toFixed(2)}°, {post.coordinates.lng.toFixed(2)}°)
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-2 shrink-0">
+                      <span 
+                        className="text-[10px] font-bold px-2 py-0.5 rounded-md border"
+                        style={{ 
+                          borderColor: `${post.intensity.color}40`,
+                          backgroundColor: `${post.intensity.color}15`,
+                          color: post.intensity.color
+                        }}
+                      >
+                        {post.intensity.level.split(" ")[0]} ({post.magnitude})
+                      </span>
+                      <div className={`p-0.5 rounded-full text-[#64748B] transition-transform duration-200 ${isMapExpanded ? "rotate-180" : ""}`}>
+                        <ChevronDown className="w-4 h-4" />
+                      </div>
+                    </div>
+                  </button>
+
+                  {/* Leaflet Map Section (Displayed when Chevron is expanded) */}
+                  {isMapExpanded && (
+                    <div className="animate-fadeIn pt-1">
+                      <PostLeafletMap
+                        id={post.id}
+                        source={post.source}
+                        title={post.headlineTitle}
+                        place={post.place || post.regionKey}
+                        coordinates={post.coordinates}
+                        magnitude={post.rawMagnitude}
+                        magnitudeStr={post.magnitude}
+                        depthStr={post.depth}
+                        depthKm={post.depthKm}
+                        intensity={post.intensity}
+                        officialUrl={post.officialUrl}
+                        authorName={post.author.name}
+                      />
+                    </div>
+                  )}
                 </div>
 
                 <div className="flex items-center justify-between gap-2 pt-2 border-t border-[#F1F5F9]">
