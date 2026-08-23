@@ -41,7 +41,7 @@ export const NETWORKS: Record<"sepolia" | "amoy", NetworkConfig> = {
     contracts: {
       vault: process.env.NEXT_PUBLIC_SEPOLIA_VAULT_ADDRESS || "0x3A9F112bC4782019b8830114a82173B19f20cA7",
       portal: process.env.NEXT_PUBLIC_SEPOLIA_PORTAL_ADDRESS || "0x5FbDB2315678afecb367f032d93F642f64180aa3",
-      beneficiaryRegistry: process.env.NEXT_PUBLIC_SEPOLIA_REGISTRY_ADDRESS || "0x9fE46736679d2D9a65F0992F2272dE9f3c7fa6e0",
+      beneficiaryRegistry: process.env.NEXT_PUBLIC_SEPOLIA_REGISTRY_ADDRESS || "0xAB948aC60B060A8e2d70e7FD7398414Fb2c80547",
       paymaster: process.env.NEXT_PUBLIC_SEPOLIA_PAYMASTER_ADDRESS || "0xCf7Ed3AccA5a467e9e704C703E8D87F634fB0Fc9",
     },
   },
