@@ -63,8 +63,8 @@ export function Navbar() {
     { name: "Overview", href: "/" },
     { name: "Crisis Feed", href: "/crisis" },
     { name: "Aid Claims", href: "/beneficiary" },
+    { name: "How It Works", href: "/#how-it-works" },
     { name: "Audit Ledger", href: "/audit" },
-    { name: "AI Oracle", href: "/oracle" },
   ];
 
   // Close dropdown when clicking outside

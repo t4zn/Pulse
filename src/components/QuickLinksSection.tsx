@@ -21,11 +21,11 @@ export function QuickLinksSection() {
       badgeColor: "text-primary bg-primary/10",
     },
     {
-      title: "AI Severity Oracle",
-      desc: "Simulate real-time seismic sensor ingestion and trigger automated 20% emergency reserve unlocks.",
-      href: "/oracle",
-      icon: Cpu,
-      badge: "GEMINI 2.5",
+      title: "How It Works Guide",
+      desc: "Step-by-step lifecycle from fiat on-ramping with MetaMask to ZK victim cash retrieval.",
+      href: "/#how-it-works",
+      icon: ShieldCheck,
+      badge: "LIFECYCLE",
       badgeColor: "text-primary bg-primary/10",
     },
     {

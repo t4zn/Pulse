@@ -111,6 +111,41 @@ interface RealCrisisPost {
     shakeRadiusKm: number;
     severeRadiusKm: number;
   };
+  raisedUSD: number;
+  targetUSD: number;
+  remainingUSD: number;
+  fundedPercent: number;
+}
+
+function computeDisasterFunding(id: string, magnitude: number, severityLevel: "CRITICAL" | "HIGH" | "ELEVATED") {
+  let hash = 0;
+  for (let i = 0; i < id.length; i++) {
+    hash = (hash << 5) - hash + id.charCodeAt(i);
+    hash |= 0;
+  }
+  const absHash = Math.abs(hash);
+
+  let targetUSD = 250000;
+  if (severityLevel === "CRITICAL" || magnitude >= 6.5) {
+    targetUSD = 500000 + (absHash % 500) * 1000; // $500,000 - $999,000
+  } else if (severityLevel === "HIGH" || magnitude >= 5.5) {
+    targetUSD = 200000 + (absHash % 250) * 1000; // $200,000 - $449,000
+  } else {
+    targetUSD = 100000 + (absHash % 150) * 1000; // $100,000 - $249,000
+  }
+
+  // Realistic funded percent between 42% and 89%
+  const percent = 42 + (absHash % 48);
+  const raisedUSD = Math.round((targetUSD * percent) / 100 / 500) * 500;
+  const remainingUSD = Math.max(0, targetUSD - raisedUSD);
+  const fundedPercent = Math.min(100, Math.round((raisedUSD / targetUSD) * 100));
+
+  return {
+    raisedUSD,
+    targetUSD,
+    remainingUSD,
+    fundedPercent,
+  };
 }
 
 function computeDisasterIntensity(
@@ -460,6 +495,9 @@ export default function CrisisFeedPage() {
               const reportedMmi = f.properties?.mmi ? Number(f.properties.mmi) : undefined;
               const intensity = computeDisasterIntensity(mag, depthVal, "USGS", reportedMmi);
 
+              const sevLevel = mag >= 6.0 ? "CRITICAL" : "HIGH";
+              const funding = computeDisasterFunding(f.id || `usgs-${time}`, mag, sevLevel);
+
               realPosts.push({
                 id: f.id || `usgs-${time}`,
                 source: "USGS",
@@ -475,13 +513,14 @@ export default function CrisisFeedPage() {
                 place,
                 headlineTitle: `A high-magnitude ${mag.toFixed(1)} tectonic rupture occurred in the ${place} region at a focal depth of ${depth}.`,
                 magnitude: `${mag.toFixed(1)} Mag`,
-                severityLevel: mag >= 6.0 ? "CRITICAL" : "HIGH",
+                severityLevel: sevLevel,
                 depth,
                 depthKm: depthVal,
                 significance: sig,
                 officialUrl: f.properties?.url || "https://earthquake.usgs.gov/",
                 coordinates: { lat, lng },
                 intensity,
+                ...funding,
                 fullDescription: [
                   `Official USGS seismic sensors recorded a Magnitude ${mag.toFixed(1)} earthquake at coordinates (${lat.toFixed(3)}°N, ${lng.toFixed(3)}°E) with a focal depth of ${depth}. Tectonic subduction along regional plate boundaries has produced significant crustal displacement.`,
                   depthVal < 30
@@ -515,6 +554,8 @@ export default function CrisisFeedPage() {
               const lat = Number(f.geometry?.coordinates?.[1] || (p?.lat ? Number(p.lat) : 0));
               const lng = Number(f.geometry?.coordinates?.[0] || (p?.lon ? Number(p.lon) : 0));
               const intensity = computeDisasterIntensity(mag, depthVal, "EMSC");
+              const sevLevel = mag >= 6.0 ? "CRITICAL" : "HIGH";
+              const funding = computeDisasterFunding(f.id || `emsc-${time}`, mag, sevLevel);
 
               realPosts.push({
                 id: f.id || `emsc-${time}`,
@@ -531,13 +572,14 @@ export default function CrisisFeedPage() {
                 place: region,
                 headlineTitle: `A severe ${mag.toFixed(1)} magnitude earthquake struck the ${region} sector at a focal depth of ${depth}.`,
                 magnitude: `${mag.toFixed(1)} Mag`,
-                severityLevel: mag >= 6.0 ? "CRITICAL" : "HIGH",
+                severityLevel: sevLevel,
                 depth,
                 depthKm: depthVal,
                 significance: `Score ${Math.round(mag * 80)}`,
                 officialUrl: `https://www.emsc-csem.org/Earthquake/earthquake.php?id=${p?.unid || ""}`,
                 coordinates: { lat, lng },
                 intensity,
+                ...funding,
                 fullDescription: [
                   `European-Mediterranean Seismological Centre (EMSC) arrays registered a Magnitude ${mag.toFixed(1)} earthquake centered in ${region} at a depth of ${depth}. Seismic waves triggered multi-sensor telemetry alerts across regional network observatories.`,
                   `Local emergency authorities report notable ground tremors across nearby coastal and residential zones, raising concerns for older unreinforced infrastructure and localized utility interruptions.`,
@@ -568,6 +610,7 @@ export default function CrisisFeedPage() {
               const lat = Array.isArray(coords) ? (typeof coords[1] === "number" ? coords[1] : Number(coords[1]) || 0) : 0;
               const lng = Array.isArray(coords) ? (typeof coords[0] === "number" ? coords[0] : Number(coords[0]) || 0) : 0;
               const intensity = computeDisasterIntensity(5.5, 0, "NASA");
+              const funding = computeDisasterFunding(ev.id, 5.5, "HIGH");
 
               realPosts.push({
                 id: ev.id,
@@ -591,6 +634,7 @@ export default function CrisisFeedPage() {
                 officialUrl: ev.link || "https://eonet.gsfc.nasa.gov/",
                 coordinates: { lat, lng },
                 intensity,
+                ...funding,
                 fullDescription: [
                   `NASA Earth Observing System satellites captured high-resolution thermal imaging and ground telemetry corresponding to active ${categoryTitle.toLowerCase()} across ${ev.title}.`,
                   `Atmospheric telemetry indicates significant localized displacement risk, hazardous particulate dispersion, and disruption to local supply corridors.`,
@@ -734,58 +778,65 @@ export default function CrisisFeedPage() {
                         {post.fullDescription[0]}
                       </p>
                     )}
-                    <button
-                      type="button"
-                      onClick={() => toggleExpand(post.id)}
-                      className="text-[11px] font-semibold text-[#2563EB] hover:underline flex items-center gap-0.5 pt-0.5 cursor-pointer"
-                    >
-                      <span>{isExpanded ? "Show Less" : "Read Full Telemetry"}</span>
-                      <ChevronDown className={`w-3 h-3 transition-transform duration-200 ${isExpanded ? "rotate-180" : ""}`} />
-                    </button>
+                    <div className="flex justify-end pt-0.5">
+                      <button
+                        type="button"
+                        onClick={() => toggleExpand(post.id)}
+                        title={isExpanded ? "Show less" : "Expand full telemetry"}
+                        className="p-1 -mr-1 rounded-md text-[#94A3B8] hover:text-[#2563EB] hover:bg-[#F1F5F9] transition-all cursor-pointer"
+                      >
+                        <ChevronDown className={`w-4 h-4 transition-transform duration-200 ${isExpanded ? "rotate-180 text-[#2563EB]" : ""}`} />
+                      </button>
+                    </div>
                   </div>
                 </div>
 
-                {/* ── Regional Seismology & Intensity Leaflet Map Expander ── */}
-                <div className="space-y-2 pt-0.5">
-                  <button
-                    type="button"
-                    onClick={() => toggleMapExpand(post.id)}
-                    className={`w-full py-2 px-3 rounded-xl border flex items-center justify-between transition-all cursor-pointer text-xs ${
-                      isMapExpanded
-                        ? "bg-[#F1F5F9] border-[#CBD5E1] text-[#0F172A]"
-                        : "bg-[#F8FAFC] hover:bg-[#F1F5F9] border-[#E2E8F0] text-[#475569] hover:text-[#0F172A]"
-                    }`}
-                  >
-                    <div className="flex items-center gap-2 min-w-0">
-                      <div className={`p-1 rounded-lg ${isMapExpanded ? "bg-[#2563EB] text-white" : "bg-white text-[#2563EB] border border-[#E2E8F0]"}`}>
-                        <MapPin className="w-3.5 h-3.5 shrink-0" />
-                      </div>
-                      <div className="flex items-center gap-1.5 truncate">
-                        <span className="font-semibold text-xs truncate">
-                          {isMapExpanded ? "Regional Epicenter & Intensity Map" : "View Region & Intensity Map"}
-                        </span>
-                        <span className="text-[11px] text-[#94A3B8] hidden sm:inline truncate">
-                          &bull; {post.place} ({post.coordinates.lat.toFixed(2)}°, {post.coordinates.lng.toFixed(2)}°)
-                        </span>
-                      </div>
-                    </div>
-
-                    <div className="flex items-center gap-2 shrink-0">
-                      <span 
-                        className="text-[10px] font-bold px-2 py-0.5 rounded-md border"
-                        style={{ 
-                          borderColor: `${post.intensity.color}40`,
-                          backgroundColor: `${post.intensity.color}15`,
-                          color: post.intensity.color
-                        }}
-                      >
-                        {post.intensity.level.split(" ")[0]} ({post.magnitude})
+                {/* ── Ultra-Minimal Funding Progress Bar ── */}
+                <div className="space-y-1.5 pt-1">
+                  <div className="flex items-center justify-between text-[11px]">
+                    <div className="flex items-center gap-1.5 truncate">
+                      <span className="font-bold text-[#0F172A]">
+                        ${post.raisedUSD.toLocaleString()}
                       </span>
-                      <div className={`p-0.5 rounded-full text-[#64748B] transition-transform duration-200 ${isMapExpanded ? "rotate-180" : ""}`}>
-                        <ChevronDown className="w-4 h-4" />
-                      </div>
+                      <span className="text-[#94A3B8]">collected</span>
+                      <span className="text-[#CBD5E1]">&bull;</span>
+                      <span className="font-semibold text-emerald-600">
+                        ${post.remainingUSD.toLocaleString()} left
+                      </span>
+                      <span className="text-[10px] text-[#94A3B8] hidden sm:inline">
+                        (of ${post.targetUSD.toLocaleString()})
+                      </span>
                     </div>
-                  </button>
+                    <span className="font-bold text-[#2563EB] shrink-0">
+                      {post.fundedPercent}% funded
+                    </span>
+                  </div>
+
+                  <div className="w-full bg-[#F1F5F9] h-1.5 rounded-full overflow-hidden">
+                    <div
+                      className="h-full bg-[#2563EB] rounded-full transition-all duration-500"
+                      style={{ width: `${post.fundedPercent}%` }}
+                    />
+                  </div>
+                </div>
+
+                {/* ── Minimal Regional Map Expander (Below Progress Line) ── */}
+                <div className="space-y-2 pt-0.5">
+                  <div className="flex items-center justify-between gap-2 text-[11px]">
+                    <button
+                      type="button"
+                      onClick={() => toggleMapExpand(post.id)}
+                      className="inline-flex items-center gap-1.5 font-semibold text-[#2563EB] hover:underline cursor-pointer transition-colors shrink-0"
+                    >
+                      <MapPin className="w-3.5 h-3.5" />
+                      <span>{isMapExpanded ? "Hide Map" : "View Regional Map"}</span>
+                      <ChevronDown className={`w-3 h-3 transition-transform duration-200 ${isMapExpanded ? "rotate-180" : ""}`} />
+                    </button>
+
+                    <span className="text-[10px] text-[#94A3B8] truncate">
+                      {post.place} ({post.coordinates.lat.toFixed(2)}&deg;, {post.coordinates.lng.toFixed(2)}&deg;)
+                    </span>
+                  </div>
 
                   {/* Leaflet Map Section (Displayed when Chevron is expanded) */}
                   {isMapExpanded && (
